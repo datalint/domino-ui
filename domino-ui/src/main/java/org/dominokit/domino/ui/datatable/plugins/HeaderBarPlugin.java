@@ -22,6 +22,7 @@ import elemental2.dom.*;
 import java.util.ArrayList;
 import java.util.List;
 import jsinterop.base.Js;
+import org.dominokit.domino.ui.datatable.ColumnConfig;
 import org.dominokit.domino.ui.datatable.DataTable;
 import org.dominokit.domino.ui.datatable.DataTableStyles;
 import org.dominokit.domino.ui.datatable.DefaultColumnShowHideListener;
@@ -29,13 +30,10 @@ import org.dominokit.domino.ui.datatable.events.SearchClearedEvent;
 import org.dominokit.domino.ui.datatable.events.TableEvent;
 import org.dominokit.domino.ui.datatable.model.Category;
 import org.dominokit.domino.ui.datatable.model.Filter;
-import org.dominokit.domino.ui.datatable.model.SearchContext;
 import org.dominokit.domino.ui.dropdown.DropDownMenu;
 import org.dominokit.domino.ui.dropdown.DropDownPosition;
 import org.dominokit.domino.ui.dropdown.DropdownAction;
 import org.dominokit.domino.ui.forms.TextBox;
-import org.dominokit.domino.ui.grid.Column;
-import org.dominokit.domino.ui.grid.Row;
 import org.dominokit.domino.ui.grid.flex.FlexItem;
 import org.dominokit.domino.ui.grid.flex.FlexJustifyContent;
 import org.dominokit.domino.ui.grid.flex.FlexLayout;
@@ -58,19 +56,21 @@ import org.jboss.elemento.EventType;
  */
 public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
 
-  private Column titleColumn = Column.span6();
-  private Column actionsBarColumn = Column.span6();
+  private final HTMLHeadingElement title = Style.of(h(2)).setMarginBottom("0px").element();
+  private final FlexLayout actionsBar =
+      FlexLayout.create().setJustifyContent(FlexJustifyContent.END);
 
-  private HTMLHeadingElement title = Style.of(h(2)).setMarginBottom("0px").element();
-  private FlexLayout actionsBar = FlexLayout.create().setJustifyContent(FlexJustifyContent.END);
-
-  private HTMLDivElement element =
+  private final HTMLDivElement element =
       DominoElement.of(div())
-          .add(
-              Row.create()
-                  .appendChild(titleColumn.appendChild(title))
-                  .appendChild(actionsBarColumn.appendChild(actionsBar))
-                  .element())
+          .appendChild(
+              FlexLayout.create()
+                  .setJustifyContent(FlexJustifyContent.SPACE_BETWEEN)
+                  .appendChild(
+                      FlexItem.create().css("header-bar-title-container").appendChild(title))
+                  .appendChild(
+                      FlexItem.create()
+                          .css("header-bar-actions-container")
+                          .appendChild(actionsBar)))
           .css(DataTableStyles.HEADER)
           .style("padding-bottom: 5px;")
           .element();
@@ -97,9 +97,6 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
     if (nonNull(description) && !description.isEmpty()) {
       this.title.appendChild(small().textContent(description).element());
     }
-
-    Style.of(titleColumn).setMarginBottom("0px");
-    Style.of(actionsBarColumn).setMarginBottom("0px");
   }
 
   /** {@inheritDoc} */
@@ -112,6 +109,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
                     .addCss(Styles.m_r_5)
                     .addCss(Styles.m_l_5)
                     .appendChild(actionElement.asElement(dataTable))
+                    .apply(actionElement::applyStyles)
                     .element()));
     dataTable.element().appendChild(element);
   }
@@ -411,7 +409,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
     private String clearSearchToolTip = "Clear search";
 
     private int autoSearchDelay = 200;
-    private HTMLDivElement element = DominoElement.of(div()).css("search-new").element();
+    private final HTMLDivElement element = DominoElement.of(div()).css("search-new").element();
     private DataTable<T> dataTable;
     private final TextBox textBox;
     private boolean autoSearch = true;
@@ -429,7 +427,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
               .addClickListener(
                   evt -> {
                     autoSearchTimer.cancel();
-                    doSearch();
+                    search();
                   })
               .setTooltip(searchToolTip)
               .style()
@@ -446,15 +444,10 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
               .addRightAddOn(clearIcon)
               .addCss("table-search-box")
               .setMarginBottom("0px")
-              .setMaxWidth("300px")
+              .setWidth("100%")
               .addCss(Styles.pull_right);
 
-      clearIcon.addClickListener(
-          evt -> {
-            textBox.clear();
-            autoSearchTimer.cancel();
-            doSearch();
-          });
+      clearIcon.addClickListener(evt -> clear());
 
       element.appendChild(textBox.element());
 
@@ -462,7 +455,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
           new Timer() {
             @Override
             public void run() {
-              doSearch();
+              search();
             }
           };
 
@@ -502,7 +495,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
           EventType.keypress.getName(),
           evt -> {
             if (ElementUtil.isEnterKey(Js.uncheckedCast(evt))) {
-              doSearch();
+              search();
             }
           });
 
@@ -519,11 +512,16 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
       this.autoSearchDelay = autoSearchDelayInMillies;
     }
 
-    private void doSearch() {
-      SearchContext searchContext = dataTable.getSearchContext();
-      Category search = Category.SEARCH;
-      searchContext.removeByCategory(search);
-      searchContext.add(Filter.create("*", textBox.getValue(), Category.SEARCH)).fireSearchEvent();
+    private void search() {
+      this.dataTable.getSearchContext().fireSearchEvent();
+    }
+
+    /** Clears the search */
+    public void clear() {
+      textBox.clear();
+      autoSearchTimer.cancel();
+      search();
+      textBox.focus();
     }
 
     /** {@inheritDoc} */
@@ -541,7 +539,19 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
     public Node asElement(DataTable<T> dataTable) {
       this.dataTable = dataTable;
       dataTable.addTableEventListener(SearchClearedEvent.SEARCH_EVENT_CLEARED, this);
+      this.dataTable
+          .getSearchContext()
+          .addBeforeSearchHandler(
+              context -> {
+                context.removeByCategory(Category.SEARCH);
+                context.add(Filter.create("*", textBox.getValue(), Category.SEARCH));
+              });
       return element;
+    }
+
+    @Override
+    public void applyStyles(FlexItem<? extends HTMLElement> self) {
+      self.setFlexGrow(1);
     }
 
     /**
@@ -568,6 +578,21 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
       clearIcon.setTooltip(clearSearchToolTip);
       return this;
     }
+
+    /** @return the search box */
+    public TextBox getTextBox() {
+      return textBox;
+    }
+
+    /** @return the search icon */
+    public Icon getSearchIcon() {
+      return searchIcon;
+    }
+
+    /** @return the clear icon */
+    public Icon getClearIcon() {
+      return clearIcon;
+    }
   }
 
   /**
@@ -587,12 +612,12 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
           .setPosition(DropDownPosition.BOTTOM_LEFT)
           .apply(
               columnsMenu ->
-                  dataTable
-                      .getTableConfig()
-                      .getColumns()
+                  dataTable.getTableConfig().getColumns().stream()
+                      .filter(this::notUtility)
                       .forEach(
                           columnConfig -> {
-                            Icon checkIcon = Icons.ALL.check();
+                            Icon checkIcon =
+                                Icons.ALL.check().toggleDisplay(!columnConfig.isHidden());
                             columnConfig.addShowHideListener(
                                 DefaultColumnShowHideListener.of(checkIcon.element(), true));
                             FlexLayout itemElement =
@@ -605,7 +630,7 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
                                         FlexItem.create()
                                             .appendChild(TextNode.of(columnConfig.getTitle())));
 
-                            columnsMenu.addAction(
+                            columnsMenu.appendChild(
                                 DropdownAction.create(columnConfig.getName(), itemElement.element())
                                     .setAutoClose(false)
                                     .addSelectionHandler(
@@ -619,6 +644,10 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
             evt.stopPropagation();
           });
       return columnsIcon.element();
+    }
+
+    private boolean notUtility(ColumnConfig<T> column) {
+      return !column.isUtilityColumn();
     }
 
     /** {@inheritDoc} */

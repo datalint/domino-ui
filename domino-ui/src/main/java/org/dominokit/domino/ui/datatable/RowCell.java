@@ -59,19 +59,20 @@ public class RowCell<T> {
     DominoElement<HTMLTableCellElement> cellElement = DominoElement.of(cellInfo.getElement());
     cellElement.clearElement();
 
-    if (nonNull(columnConfig.getMinWidth())) {
-      cellElement.setMinWidth(columnConfig.getMinWidth());
-      columnConfig.getHeadElement().style().setMinWidth(columnConfig.getMinWidth());
-    }
-
-    if (nonNull(columnConfig.getMaxWidth())) {
-      cellElement.setMaxWidth(columnConfig.getMaxWidth());
-      columnConfig.getHeadElement().style().setMaxWidth(columnConfig.getMaxWidth());
-    }
+    //    if (nonNull(columnConfig.getMinWidth())) {
+    //      columnConfig.getHeadElement().style().setMinWidth(columnConfig.getMinWidth());
+    //    }
+    //
+    //    if (nonNull(columnConfig.getMaxWidth())) {
+    //      columnConfig.getHeadElement().style().setMaxWidth(columnConfig.getMaxWidth());
+    //    }
 
     if (nonNull(columnConfig.getTextAlign())) {
       cellElement.setTextAlign(columnConfig.getTextAlign());
-      columnConfig.getHeadElement().style().setTextAlign(columnConfig.getTextAlign());
+    }
+
+    if (nonNull(columnConfig.getHeaderTextAlign())) {
+      columnConfig.getHeadElement().style().setTextAlign(columnConfig.getHeaderTextAlign());
     }
 
     if (cellInfo.getTableRow().isEditable()) {
