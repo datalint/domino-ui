@@ -71,7 +71,13 @@ public class ResizeColumnsPlugin<T>
             resizeColumnMeta -> {
               if (resizeColumnMeta.isResizable()) {
                 DominoElement<HTMLDivElement> resizeElement =
-                    DominoElement.div().css(COLUMN_RESIZER);
+                    DominoElement.div()
+                        .css(COLUMN_RESIZER)
+                        .addClickListener(
+                            evt -> {
+                              evt.stopPropagation();
+                              evt.preventDefault();
+                            });
                 EventListener resizeListener =
                     evt -> {
                       MouseEvent mouseEvent = Js.uncheckedCast(evt);
@@ -113,6 +119,7 @@ public class ResizeColumnsPlugin<T>
                     evt -> {
                       MouseEvent mouseEvent = Js.uncheckedCast(evt);
                       if (mouseEvent.buttons == 1) {
+                        mouseEvent.stopPropagation();
                         mouseEvent.preventDefault();
                         column
                             .getGrandParent()
@@ -145,8 +152,19 @@ public class ResizeColumnsPlugin<T>
                       DominoDom.document.body.removeEventListener(
                           EventType.mousemove.getName(), resizeListener);
                     };
-                resizeElement.addEventListener(EventType.mouseup.getName(), stopResizing);
-                DominoDom.document.body.addEventListener(EventType.mouseup.getName(), stopResizing);
+
+                this.datatable.onAttached(
+                    mutationRecord -> {
+                      resizeElement.addEventListener(EventType.mouseup.getName(), stopResizing);
+                      DominoDom.document.body.addEventListener(
+                          EventType.mouseup.getName(), stopResizing);
+                    });
+                this.datatable.onDetached(
+                    mutationRecord -> {
+                      resizeElement.removeEventListener(EventType.mouseup.getName(), stopResizing);
+                      DominoDom.document.body.removeEventListener(
+                          EventType.mouseup.getName(), stopResizing);
+                    });
                 column.appendChild(FlexItem.of(resizeElement));
               }
             });
@@ -162,8 +180,6 @@ public class ResizeColumnsPlugin<T>
             col.setWidth(width);
 
             String minWidth = meta.suppliedMinWidthOrOriginal(width);
-
-            DomGlobal.console.info(minWidth);
 
             if (config.isClipContent()) {
               String maxWidth = meta.suppliedMaxWidthOrOriginal(width);

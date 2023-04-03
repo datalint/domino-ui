@@ -22,10 +22,10 @@ import java.util.Optional;
 import org.dominokit.domino.ui.datatable.ColumnConfig;
 import org.dominokit.domino.ui.datatable.ColumnCssRuleMeta;
 import org.dominokit.domino.ui.datatable.ColumnHeaderMeta;
-import org.dominokit.domino.ui.datatable.ColumnMeta;
+import org.dominokit.domino.ui.utils.ComponentMeta;
 import org.dominokit.domino.ui.utils.DominoCSSRule;
 
-public class PinColumnMeta implements ColumnMeta, PinColumnFunction {
+public class PinColumnMeta implements ComponentMeta, PinColumnFunction {
 
   private final PinDirection direction;
 
@@ -96,6 +96,7 @@ public class PinColumnMeta implements ColumnMeta, PinColumnFunction {
                 style.setProperty("right", "auto");
                 style.setProperty("position", "sticky");
                 style.setProperty("left", left + "px");
+                style.setProperty("z-index", "1");
               });
       column
           .getGrandParent()
@@ -139,6 +140,7 @@ public class PinColumnMeta implements ColumnMeta, PinColumnFunction {
               style.setProperty("left", "auto");
               style.setProperty("position", "sticky");
               style.setProperty("right", right + "px");
+              style.setProperty("z-index", "1");
             });
 
     column

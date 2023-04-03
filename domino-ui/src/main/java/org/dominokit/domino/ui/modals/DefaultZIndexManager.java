@@ -34,14 +34,14 @@ public class DefaultZIndexManager implements ZIndexManager {
    * {@inheritDoc}
    *
    * @return The next z-index starting from {@link DominoUIConfig#getInitialZIndex()} and
-   *     incremented by {@link DominoUIConfig#getzIndexIncrement()} with every call
+   *     incremented by {@link DominoUIConfig#getZindexIncrement()} with every call
    */
   @Override
   public Integer getNextZIndex() {
     if (isNull(currentZIndex)) {
       this.currentZIndex = DominoUIConfig.INSTANCE.getInitialZIndex();
     }
-    currentZIndex += DominoUIConfig.INSTANCE.getzIndexIncrement();
+    currentZIndex += DominoUIConfig.INSTANCE.getZindexIncrement();
     return currentZIndex;
   }
 
@@ -52,21 +52,19 @@ public class DefaultZIndexManager implements ZIndexManager {
    */
   @Override
   public void onPopupOpen(IsPopup<?> popup) {
-    List<Integer> assignedValues = new ArrayList<>();
     if (popup.isModal()) {
       Integer nextZIndex = getNextZIndex();
-      assignedValues.add(nextZIndex);
       ModalBackDrop.INSTANCE.setZIndex(nextZIndex);
       if (!ModalBackDrop.INSTANCE.isAttached()) {
         body().appendChild(ModalBackDrop.INSTANCE);
       }
       modals.push(popup);
     }
+
     Integer nextZIndex = getNextZIndex();
     popup.setZIndex(nextZIndex);
-    assignedValues.add(nextZIndex);
     listeners.forEach(
-        listener -> listener.onZIndexChange(assignedValues, ModalBackDrop.INSTANCE.isAttached()));
+        listener -> listener.onZIndexChange(new ZIndexListener.ZIndexInfo(popup, modals)));
   }
 
   /**
@@ -76,19 +74,16 @@ public class DefaultZIndexManager implements ZIndexManager {
    */
   @Override
   public void onPopupClose(IsPopup<?> popup) {
-    List<Integer> assignedValues = new ArrayList<>();
     if (popup.isModal()) {
       modals.remove(popup);
       if (!modals.isEmpty()) {
         Integer backdropZIndex = getNextZIndex();
-        assignedValues.add(backdropZIndex);
         ModalBackDrop.INSTANCE.setZIndex(backdropZIndex);
         Integer modalZIndex = getNextZIndex();
         modals.peek().setZIndex(modalZIndex);
-        assignedValues.add(modalZIndex);
         listeners.forEach(
             listener ->
-                listener.onZIndexChange(assignedValues, ModalBackDrop.INSTANCE.isAttached()));
+                listener.onZIndexChange(new ZIndexListener.ZIndexInfo(modals.peek(), modals)));
       } else {
         ModalBackDrop.INSTANCE.remove();
       }

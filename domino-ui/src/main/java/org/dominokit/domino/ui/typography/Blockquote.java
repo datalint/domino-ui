@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.dominokit.domino.ui.Typography;
+package org.dominokit.domino.ui.typography;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;

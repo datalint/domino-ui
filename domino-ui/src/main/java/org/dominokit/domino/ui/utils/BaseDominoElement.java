@@ -22,7 +22,9 @@ import elemental2.core.JsArray;
 import elemental2.dom.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import jsinterop.base.Js;
@@ -59,7 +61,8 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
         HasWavesElement,
         IsReadOnly<T>,
         DominoStyle<E, T, T>,
-        HasAttributes<T> {
+        HasAttributes<T>,
+        HasMeta<T> {
 
   /** The name of the attribute that holds a unique id for the component */
   private static final String DOMINO_UUID = "domino-uuid";
@@ -84,6 +87,8 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
 
   private EventListener attachEventListener;
   private EventListener detachEventListener;
+
+  private final Map<String, ComponentMeta> metaObjects = new HashMap<>();
 
   /**
    * initialize the component using its root element giving it a unique id, a {@link Style} and also
@@ -300,7 +305,8 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
       this.attachEventListener =
           evt -> {
             CustomEvent cevent = Js.uncheckedCast(evt);
-            observerCallback.onObserved(Js.uncheckedCast(cevent.detail));
+            attachObservers.forEach(
+                callback -> callback.onObserved(Js.uncheckedCast(cevent.detail)));
           };
       this.element
           .element()
@@ -525,6 +531,49 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   /**
    * Adds a listener for the provided event type
    *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link AddEventListenerOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(String type, EventListener listener, AddEventListenerOptions options) {
+    element().addEventListener(type, listener, options);
+    return element;
+  }
+
+  /**
+   * Adds a listener for the provided event type
+   *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link EventOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(String type, EventListener listener, EventOptions options) {
+    element().addEventListener(type, listener, options.get());
+    return element;
+  }
+
+  /**
+   * Adds a listener for the provided event type
+   *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link EventTarget.AddEventListenerOptionsUnionType}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(
+      String type, EventListener listener, EventTarget.AddEventListenerOptionsUnionType options) {
+    element().addEventListener(type, listener, options);
+    return element;
+  }
+
+  /**
+   * Adds a listener for the provided event type
+   *
    * @param listener {@link EventListener}
    * @param events String array of event types
    * @return same component
@@ -554,6 +603,52 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   }
 
   /**
+   * Adds a listener for the provided event type
+   *
+   * @param type {@link EventType}
+   * @param listener {@link EventListener}
+   * @param options {@link AddEventListenerOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(
+      EventType<?, ?> type, EventListener listener, AddEventListenerOptions options) {
+    element().addEventListener(type.getName(), listener, options);
+    return element;
+  }
+
+  /**
+   * Adds a listener for the provided event type
+   *
+   * @param type {@link EventType}
+   * @param listener {@link EventListener}
+   * @param options {@link EventTarget.AddEventListenerOptionsUnionType}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(
+      EventType<?, ?> type,
+      EventListener listener,
+      EventTarget.AddEventListenerOptionsUnionType options) {
+    element().addEventListener(type.getName(), listener, options.asAddEventListenerOptions());
+    return element;
+  }
+
+  /**
+   * Adds a listener for the provided event type
+   *
+   * @param type {@link EventType}
+   * @param listener {@link EventListener}
+   * @param options {@link AddEventListenerOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T addEventListener(EventType<?, ?> type, EventListener listener, EventOptions options) {
+    element().addEventListener(type.getName(), listener, options.get());
+    return element;
+  }
+
+  /**
    * Removes a listener for the provided event type
    *
    * @param type EventType
@@ -569,6 +664,52 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   /**
    * Removes a listener for the provided event type
    *
+   * @param type EventType
+   * @param listener {@link EventListener}
+   * @param options {@link AddEventListenerOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(
+      EventType<?, ?> type, EventListener listener, AddEventListenerOptions options) {
+    element().removeEventListener(type.getName(), listener, options);
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
+   * @param type EventType
+   * @param listener {@link EventListener}
+   * @param options {@link EventTarget.AddEventListenerOptionsUnionType}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(
+      EventType<?, ?> type,
+      EventListener listener,
+      EventTarget.AddEventListenerOptionsUnionType options) {
+    element().removeEventListener(type.getName(), listener, options.asAddEventListenerOptions());
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
+   * @param type EventType
+   * @param listener {@link EventListener}
+   * @param options {@link EventOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(EventType<?, ?> type, EventListener listener, EventOptions options) {
+    element().removeEventListener(type.getName(), listener, options.get());
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
    * @param type String event type
    * @param listener {@link EventListener}
    * @return same component
@@ -576,6 +717,50 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   @Editor.Ignore
   public T removeEventListener(String type, EventListener listener) {
     element().removeEventListener(type, listener);
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link AddEventListenerOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(
+      String type, EventListener listener, AddEventListenerOptions options) {
+    element().removeEventListener(type, listener, options);
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link EventTarget.AddEventListenerOptionsUnionType}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(
+      String type, EventListener listener, EventTarget.AddEventListenerOptionsUnionType options) {
+    element().removeEventListener(type, listener, options.asAddEventListenerOptions());
+    return element;
+  }
+
+  /**
+   * Removes a listener for the provided event type
+   *
+   * @param type String event type
+   * @param listener {@link EventListener}
+   * @param options {@link EventOptions}
+   * @return same component
+   */
+  @Editor.Ignore
+  public T removeEventListener(String type, EventListener listener, EventOptions options) {
+    element().removeEventListener(type, listener, options.get());
     return element;
   }
 
@@ -1279,6 +1464,7 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   @Editor.Ignore
   public T disable() {
     DisableUtil.disable(this);
+    DominoElement.of(getClickableElement()).setCssProperty("pointer-events", "none");
     return element;
   }
 
@@ -1291,6 +1477,7 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   @Editor.Ignore
   public T enable() {
     DisableUtil.enable(this);
+    DominoElement.of(getClickableElement()).removeCssProperty("pointer-events");
     return element;
   }
 
@@ -1339,50 +1526,95 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
   }
 
   /**
-   * @param handler {@link org.dominokit.domino.ui.collapsible.Collapsible.HideCompletedHandler}
+   * @param handler {@link Collapsible.HideHandler}
    * @return same component
-   * @see Collapsible#addHideHandler(Collapsible.HideCompletedHandler)
+   * @see Collapsible#addHideHandler(Collapsible.HideHandler)
    */
   @Editor.Ignore
   @SuppressWarnings("unchecked")
-  public T addHideListener(Collapsible.HideCompletedHandler handler) {
+  public T addHideListener(Collapsible.HideHandler handler) {
     getCollapsible().addHideHandler(handler);
+    return (T) this;
+  }
+  /**
+   * @param handler {@link Collapsible.HideHandler}
+   * @return same component
+   * @see Collapsible#addBeforeHideHandler(Collapsible.HideHandler)
+   */
+  @Editor.Ignore
+  @SuppressWarnings("unchecked")
+  public T addBeforeHideListener(Collapsible.HideHandler handler) {
+    getCollapsible().addBeforeHideHandler(handler);
     return (T) this;
   }
 
   /**
-   * @param handler {@link org.dominokit.domino.ui.collapsible.Collapsible.HideCompletedHandler}
+   * @param handler {@link Collapsible.HideHandler}
    * @return same component
-   * @see Collapsible#removeHideHandler(Collapsible.HideCompletedHandler)
+   * @see Collapsible#removeHideHandler(Collapsible.HideHandler)
    */
   @Editor.Ignore
   @SuppressWarnings("unchecked")
-  public T removeHideListener(Collapsible.HideCompletedHandler handler) {
+  public T removeHideListener(Collapsible.HideHandler handler) {
     getCollapsible().removeHideHandler(handler);
     return (T) this;
   }
 
   /**
-   * @param handler {@link org.dominokit.domino.ui.collapsible.Collapsible.ShowCompletedHandler}
+   * @param handler {@link Collapsible.HideHandler}
    * @return same component
-   * @see Collapsible#addShowHandler(Collapsible.ShowCompletedHandler)
+   * @see Collapsible#removeBeforeHideHandler(Collapsible.HideHandler)
    */
   @Editor.Ignore
   @SuppressWarnings("unchecked")
-  public T addShowListener(Collapsible.ShowCompletedHandler handler) {
-    getCollapsible().addShowHandler(handler);
+  public T removeBeforeHideListener(Collapsible.HideHandler handler) {
+    getCollapsible().removeBeforeHideHandler(handler);
     return (T) this;
   }
 
   /**
-   * @param handler {@link org.dominokit.domino.ui.collapsible.Collapsible.ShowCompletedHandler}
+   * @param handler {@link Collapsible.ShowHandler}
    * @return same component
-   * @see Collapsible#removeShowHandler(Collapsible.ShowCompletedHandler)
+   * @see Collapsible#addShowHandler(Collapsible.ShowHandler)
    */
   @Editor.Ignore
   @SuppressWarnings("unchecked")
-  public T removeShowListener(Collapsible.ShowCompletedHandler handler) {
+  public T addShowListener(Collapsible.ShowHandler handler) {
+    getCollapsible().addShowHandler(handler);
+    return (T) this;
+  }
+  /**
+   * @param handler {@link Collapsible.ShowHandler}
+   * @return same component
+   * @see Collapsible#addBeforeShowHandler(Collapsible.ShowHandler)
+   */
+  @Editor.Ignore
+  @SuppressWarnings("unchecked")
+  public T addBeforeShowListener(Collapsible.ShowHandler handler) {
+    getCollapsible().addBeforeShowHandler(handler);
+    return (T) this;
+  }
+
+  /**
+   * @param handler {@link Collapsible.ShowHandler}
+   * @return same component
+   * @see Collapsible#removeShowHandler(Collapsible.ShowHandler)
+   */
+  @Editor.Ignore
+  @SuppressWarnings("unchecked")
+  public T removeShowListener(Collapsible.ShowHandler handler) {
     getCollapsible().removeShowHandler(handler);
+    return (T) this;
+  }
+  /**
+   * @param handler {@link Collapsible.ShowHandler}
+   * @return same component
+   * @see Collapsible#removeBeforeShowHandler(Collapsible.ShowHandler)
+   */
+  @Editor.Ignore
+  @SuppressWarnings("unchecked")
+  public T removeBeforeShowListener(Collapsible.ShowHandler handler) {
+    getCollapsible().removeBeforeShowHandler(handler);
     return (T) this;
   }
 
@@ -1795,8 +2027,16 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
 
   @Override
   public T setZIndex(int zindex) {
+    this.setAttribute("dui-z-index", zindex);
     style().setZIndex(zindex);
     return (T) this;
+  }
+
+  public int getZIndex() {
+    if (hasAttribute("dui-z-index")) {
+      return Integer.parseInt(getAttribute("dui-z-index"));
+    }
+    return -1;
   }
 
   @Deprecated
@@ -1939,7 +2179,7 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
    */
   public T setDropMenu(AbstractMenu<?, ?> dropMenu) {
     if (nonNull(dropMenu)) {
-      dropMenu.setTargetElement(this);
+      dropMenu.addTargetElement(this);
     }
     return (T) this;
   }
@@ -1959,6 +2199,11 @@ public abstract class BaseDominoElement<E extends HTMLElement, T extends IsEleme
 
   protected DominoUIConfig config() {
     return DominoUIConfig.INSTANCE;
+  }
+
+  @Override
+  public Map<String, ComponentMeta> getMetaObjects() {
+    return metaObjects;
   }
 
   /**

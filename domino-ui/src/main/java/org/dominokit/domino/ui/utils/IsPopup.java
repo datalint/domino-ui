@@ -16,6 +16,9 @@
 package org.dominokit.domino.ui.utils;
 
 public interface IsPopup<T> {
+
+  PopupsCloser POPUPS_CLOSER = PopupsCloser.INSTANCE;
+
   T open();
 
   T close();
@@ -24,5 +27,13 @@ public interface IsPopup<T> {
 
   boolean isAutoClose();
 
+  default boolean isDialog() {
+    return false;
+  }
+
   T setZIndex(int zIndex);
+
+  int getZIndex();
+
+  default void stealFocus() {}
 }
