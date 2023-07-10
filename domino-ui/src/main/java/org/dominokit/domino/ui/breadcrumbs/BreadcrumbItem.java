@@ -90,11 +90,11 @@ public class BreadcrumbItem extends BaseDominoElement<HTMLLIElement, BreadcrumbI
   /**
    * Creates item with text content and icon
    *
-   * @param icon the {@link BaseIcon} of the item
    * @param text the content of the item
+   * @param icon the {@link BaseIcon} of the item
    * @return new instance
    */
-  public static BreadcrumbItem create(BaseIcon<?> icon, String text) {
+  public static BreadcrumbItem create(String text, BaseIcon<?> icon) {
     return new BreadcrumbItem(text, icon);
   }
 
