@@ -268,8 +268,8 @@ public class DataTable<T> extends BaseDominoElement<HTMLDivElement, DataTable<T>
     tableConfig.getPlugins().forEach(plugin -> plugin.onAllRowsAdded(DataTable.this));
   }
 
-  /** @return the {@link Collection} of T that is the current data in the table */
-  public Collection<T> getData() {
+  /** @return the {@link List} of T that is the current data in the table */
+  public List<T> getData() {
     return data;
   }
 
