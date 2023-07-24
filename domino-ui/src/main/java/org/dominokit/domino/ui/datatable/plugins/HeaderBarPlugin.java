@@ -125,6 +125,11 @@ public class HeaderBarPlugin<T> implements DataTablePlugin<T> {
     return this;
   }
 
+  /** @return the {@link FlexLayout} -actionsBar- */
+  public FlexLayout getActionsBar() {
+    return actionsBar;
+  }
+
   /**
    * a Predefined {@link HeaderActionElement} that condense/expand the data table rows
    *
