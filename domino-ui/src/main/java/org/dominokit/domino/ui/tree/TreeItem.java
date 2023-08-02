@@ -17,122 +17,167 @@ package org.dominokit.domino.ui.tree;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.dominokit.domino.ui.style.Unit.px;
-import static org.jboss.elemento.Elements.*;
 
 import elemental2.dom.*;
 import elemental2.dom.EventListener;
 import java.util.*;
 import java.util.function.Predicate;
 import org.dominokit.domino.ui.collapsible.Collapsible;
-import org.dominokit.domino.ui.icons.BaseIcon;
-import org.dominokit.domino.ui.icons.Icons;
-import org.dominokit.domino.ui.style.*;
+import org.dominokit.domino.ui.config.HasComponentConfig;
+import org.dominokit.domino.ui.config.TreeConfig;
+import org.dominokit.domino.ui.elements.*;
+import org.dominokit.domino.ui.icons.Icon;
+import org.dominokit.domino.ui.icons.StateChangeIcon;
+import org.dominokit.domino.ui.icons.ToggleIcon;
+import org.dominokit.domino.ui.style.Style;
+import org.dominokit.domino.ui.style.WaveStyle;
 import org.dominokit.domino.ui.utils.*;
-import org.jboss.elemento.EventType;
-import org.jboss.elemento.IsElement;
 
 /**
  * A component representing the tree item
  *
  * @param <T> the type of the value object inside the item
- * @see WavesElement
+ * @author vegegoku
+ * @version $Id: $Id
  * @see CanActivate
  * @see CanDeactivate
  * @see HasClickableElement
  */
-public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
-    implements TreeNode, CanActivate, CanDeactivate {
+public class TreeItem<T> extends BaseDominoElement<HTMLLIElement, TreeItem<T>>
+    implements TreeNode,
+        CanActivate,
+        CanDeactivate,
+        HasClickableElement,
+        TreeStyles,
+        HasComponentConfig<TreeConfig>,
+        HasSelectionListeners<TreeItem<T>, TreeItem<T>, TreeItem<T>> {
 
   private String title;
-  private HTMLLIElement element;
-  private final DominoElement<HTMLAnchorElement> anchorElement;
+  private LIElement element;
+  private final AnchorElement anchorElement;
+  private final DivElement contentElement;
+  private LazyChild<Icon<?>> itemIcon;
+  private final LazyChild<SpanElement> textElement;
+  private final List<TreeItem<T>> subItems = new LinkedList<>();
+  private TreeItem<T> activeTreeItem;
+  private TreeParent<T> parent;
+  private final UListElement subTree;
   private final List<TreeItem<T>> childItems = new ArrayList<>();
   private TreeNode parentNode;
-  private Collapsible collapsible;
-
-  private HTMLUListElement childrenContainer;
-  private BaseIcon<?> icon;
-  private BaseIcon<?> activeIcon;
-  private BaseIcon<?> originalIcon;
-
-  private BaseIcon<?> expandIcon;
 
   private T value;
 
-  private int level = 1;
-  private int levelPadding = 15;
-
   private ToggleTarget toggleTarget = ToggleTarget.ANY;
-  private final DominoElement<HTMLElement> indicatorContainer =
-      DominoElement.of(span()).css("tree-indicator");
-  private HTMLElement titleElement;
+
   private OriginalState originalState;
+  private boolean selectionListenersPaused;
+  private Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>> selectionListeners =
+      new HashSet<>();
+  private Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>> deselectionListeners =
+      new HashSet<>();
 
-  public TreeItem(String title, BaseIcon<?> icon) {
-    this.title = title;
+  private final EventListener anchorListener =
+      evt -> {
+        if (ToggleTarget.ANY.equals(this.toggleTarget)) {
+          evt.stopPropagation();
+          if (isParent()) {
+            toggle();
+          }
+          setActiveItem();
+        }
+      };
+
+  private final EventListener iconListener =
+      evt -> {
+        if (ToggleTarget.ICON.equals(this.toggleTarget)) {
+          evt.stopPropagation();
+          if (isParent()) {
+            toggle();
+          }
+          setActiveItem();
+        }
+      };
+
+  private TreeItem() {
+    this.element =
+        li().addCss(dui_tree_item)
+            .appendChild(
+                anchorElement =
+                    a().addCss(dui_tree_anchor)
+                        .appendChild(contentElement = div().addCss(dui_tree_item_content)))
+            .appendChild(subTree = ul().addCss(dui_tree_nav).hide());
+    this.textElement = LazyChild.of(span().addCss(dui_tree_item_text), contentElement);
+    init(this);
+
+    setCollapseStrategy(getConfig().getTreeDefaultCollapseStrategy(this).get());
+    setAttribute(Collapsible.DUI_COLLAPSED, "true");
+  }
+
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param icon a {@link org.dominokit.domino.ui.icons.Icon} object
+   * @param title a {@link java.lang.String} object
+   */
+  public TreeItem(Icon<?> icon, String title) {
+    this();
     setIcon(icon);
-    titleElement = DominoElement.of(span()).css("title").textContent(title).element();
-    DominoElement<HTMLElement> toggleContainer = DominoElement.of(span()).css("tree-tgl-icn");
-    this.anchorElement =
-        DominoElement.of(a())
-            .add(this.icon)
-            .add(
-                DominoElement.of(div())
-                    .css(Styles.ellipsis_text)
-                    .style("margin-top: 2px;")
-                    .add(titleElement))
-            .add(
-                toggleContainer
-                    .appendChild(
-                        Icons.ALL
-                            .plus_mdi()
-                            .size18()
-                            .css("tree-tgl-collapsed")
-                            .clickable()
-                            .addClickListener(
-                                evt -> {
-                                  evt.stopPropagation();
-                                  toggle();
-                                  setActiveItem();
-                                }))
-                    .appendChild(
-                        Icons.ALL
-                            .minus_mdi()
-                            .size18()
-                            .css("tree-tgl-expanded")
-                            .clickable()
-                            .addClickListener(
-                                evt -> {
-                                  evt.stopPropagation();
-                                  toggle();
-                                  setActiveItem();
-                                })))
-            .add(indicatorContainer);
+    setTitle(title);
     init();
   }
 
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param title a {@link java.lang.String} object
+   */
   public TreeItem(String title) {
-    this(title, Icons.ALL.folder().setCssProperty("visibility", "hidden"));
-  }
-
-  public TreeItem(BaseIcon<?> icon) {
-    setIcon(icon);
-    this.anchorElement = DominoElement.of(a().add(this.icon));
+    this();
+    setTitle(title);
     init();
   }
 
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param icon a {@link org.dominokit.domino.ui.icons.Icon} object
+   */
+  public TreeItem(Icon<?> icon) {
+    this();
+    setIcon(icon);
+    init();
+  }
+
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param title a {@link java.lang.String} object
+   * @param value a T object
+   */
   public TreeItem(String title, T value) {
     this(title);
     this.value = value;
   }
 
-  public TreeItem(String title, BaseIcon<?> icon, T value) {
-    this(title, icon);
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param icon a {@link org.dominokit.domino.ui.icons.Icon} object
+   * @param title a {@link java.lang.String} object
+   * @param value a T object
+   */
+  public TreeItem(Icon<?> icon, String title, T value) {
+    this(icon, title);
     this.value = value;
   }
 
-  public TreeItem(BaseIcon<?> icon, T value) {
+  /**
+   * Constructor for TreeItem.
+   *
+   * @param icon a {@link org.dominokit.domino.ui.icons.Icon} object
+   * @param value a T object
+   */
+  public TreeItem(Icon<?> icon, T value) {
     this(icon);
     this.value = value;
   }
@@ -152,12 +197,12 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   /**
    * Creates new tree item with a title and an icon
    *
+   * @param icon the item's {@link org.dominokit.domino.ui.icons.Icon}
    * @param title the title of the item
-   * @param icon the item's {@link BaseIcon}
    * @return new instance
    */
-  public static TreeItem<String> create(String title, BaseIcon<?> icon) {
-    TreeItem<String> treeItem = new TreeItem<>(title, icon);
+  public static TreeItem<String> create(Icon<?> icon, String title) {
+    TreeItem<String> treeItem = new TreeItem<>(icon, title);
     treeItem.value = title;
     return treeItem;
   }
@@ -165,10 +210,10 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   /**
    * Creates new tree item with an icon
    *
-   * @param icon the item's {@link BaseIcon}
+   * @param icon the item's {@link org.dominokit.domino.ui.icons.Icon}
    * @return new instance
    */
-  public static TreeItem<String> create(BaseIcon<?> icon) {
+  public static TreeItem<String> create(Icon<?> icon) {
     TreeItem<String> treeItem = new TreeItem<>(icon);
     treeItem.value = "";
     return treeItem;
@@ -190,56 +235,36 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    * Creates new tree item with a title, an icon and a value
    *
    * @param title the title of the item
-   * @param icon the item's {@link BaseIcon}
+   * @param icon the item's {@link org.dominokit.domino.ui.icons.Icon}
    * @param value the value of the item
    * @param <T> the type of the value
    * @return new instance
    */
-  public static <T> TreeItem<T> create(String title, BaseIcon<?> icon, T value) {
-    return new TreeItem<>(title, icon, value);
+  public static <T> TreeItem<T> create(Icon<?> icon, String title, T value) {
+    return new TreeItem<>(icon, title, value);
   }
 
   /**
    * Creates new tree item with an icon and a value
    *
-   * @param icon the item's {@link BaseIcon}
+   * @param icon the item's {@link org.dominokit.domino.ui.icons.Icon}
    * @param value the value of the item
    * @param <T> the type of the value
    * @return new instance
    */
-  public static <T> TreeItem<T> create(BaseIcon<?> icon, T value) {
+  public static <T> TreeItem<T> create(Icon<?> icon, T value) {
     return new TreeItem<>(icon, value);
   }
 
   private void init() {
-    this.element = li().element();
-    this.element.appendChild(anchorElement.element());
-    childrenContainer = DominoElement.of(ul()).css("ml-tree").element();
-    element().appendChild(childrenContainer);
-    collapsible =
-        Collapsible.create(childrenContainer)
-            .setStrategy(DominoUIConfig.INSTANCE.getDefaultTreeCollapseStrategySupplier().get(this))
-            .addHideHandler(
-                () -> {
-                  restoreIcon();
-                })
-            .addShowHandler(
-                () -> {
-                  replaceIcon(expandIcon);
-                })
-            .hide();
-    anchorElement.addEventListener(
-        "click",
-        evt -> {
-          if (ToggleTarget.ANY.equals(this.toggleTarget) && isParent()) {
-            toggle();
-          }
-          setActiveItem();
-        });
-    init(this);
-    setToggleTarget(ToggleTarget.ANY);
-    setWaveColor(WaveColor.THEME);
-    applyWaveStyle(WaveStyle.BLOCK);
+    addBeforeCollapseListener(() -> updateIcon(true));
+    addBeforeExpandListener(() -> updateIcon(false));
+    anchorElement.addClickListener(anchorListener);
+    applyWaves();
+  }
+
+  private void applyWaves() {
+    withWaves((item, waves) -> waves.setWaveStyle(WaveStyle.BLOCK));
   }
 
   /**
@@ -253,7 +278,7 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   /**
    * Adds a child item to this one
    *
-   * @param treeItem the child {@link TreeItem}
+   * @param treeItem the child {@link org.dominokit.domino.ui.tree.TreeItem}
    * @return same instance
    */
   public TreeItem<T> appendChild(TreeItem<T> treeItem) {
@@ -266,16 +291,62 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   public TreeNode appendChild(TreeNode node) {
     TreeItem<T> treeItem = (TreeItem<T>) node;
     this.childItems.add(treeItem);
-    childrenContainer.appendChild(treeItem.element());
-    anchorElement.addCss("tree-toggle");
+    subTree.appendChild(treeItem);
     treeItem.parentNode = this;
-    treeItem.setLevel(level + 1);
-    treeItem.addCss("tree-leaf");
-    Style.of(this.element()).removeCss("tree-leaf");
     treeItem.setToggleTarget(this.toggleTarget);
-    treeItem.setLevelPadding(levelPadding);
-    this.style().addCss("tree-item-parent");
+    updateIcon(isCollapsed());
+    getParent()
+        .ifPresent(
+            p -> {
+              if (nonNull(p.getTreeRoot())) {
+                Tree.TreeItemIconSupplier<T> iconSupplier = p.getTreeRoot().getIconSupplier();
+                if (nonNull(iconSupplier)) {
+                  subItems.forEach(item -> item.onSuppliedIconChanged(iconSupplier));
+                }
+              }
+            });
     return node;
+  }
+
+  /**
+   * appendChild.
+   *
+   * @param postfixAddOn a {@link org.dominokit.domino.ui.utils.PostfixAddOn} object
+   * @return a {@link org.dominokit.domino.ui.tree.TreeItem} object
+   */
+  public TreeItem<T> appendChild(PostfixAddOn<?> postfixAddOn) {
+    contentElement.appendChild(postfixAddOn);
+    return this;
+  }
+
+  /**
+   * appendChild.
+   *
+   * @param prefixAddOn a {@link org.dominokit.domino.ui.utils.PrefixAddOn} object
+   * @return a {@link org.dominokit.domino.ui.tree.TreeItem} object
+   */
+  public TreeItem<T> appendChild(PrefixAddOn<?> prefixAddOn) {
+    contentElement.appendChild(prefixAddOn);
+    return this;
+  }
+
+  private void updateIcon(boolean collapsed) {
+    if (nonNull(itemIcon) && itemIcon.isInitialized()) {
+      if (itemIcon.element() instanceof ToggleIcon) {
+        ((ToggleIcon<?, ?>) itemIcon.element()).toggle();
+      } else if (itemIcon.element() instanceof StateChangeIcon) {
+        StateChangeIcon<?, ?> icon = (StateChangeIcon<?, ?>) itemIcon.element();
+        if (isParent()) {
+          icon.setState(collapsed ? TreeItemIcon.STATE_COLLAPSED : TreeItemIcon.STATE_EXPANDED);
+        } else {
+          if (dui_active.isAppliedTo(this)) {
+            icon.setState(TreeItemIcon.STATE_ACTIVE);
+          } else {
+            icon.setState(TreeItemIcon.STATE_LEAF);
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -284,31 +355,30 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    * @return same instance
    */
   public TreeItem<T> addSeparator() {
-    childrenContainer.appendChild(DominoElement.of(li()).css("separator").add(a()).element());
+    subTree.appendChild(li().addCss(dui_separator));
     return this;
   }
 
   /**
    * Sets what is the target for toggling an item
    *
-   * @param toggleTarget the {@link ToggleTarget}
+   * @param toggleTarget the {@link org.dominokit.domino.ui.tree.ToggleTarget}
    * @return same instance
    */
   public TreeItem<T> setToggleTarget(ToggleTarget toggleTarget) {
     if (nonNull(toggleTarget)) {
-      if (nonNull(this.toggleTarget)) {
-        this.removeCss(this.toggleTarget.getStyle());
-      }
 
       this.toggleTarget = toggleTarget;
-      this.css(this.toggleTarget.getStyle());
       if (ToggleTarget.ICON.equals(toggleTarget)) {
-        if (nonNull(icon)) {
-          icon.setClickable(true);
+        removeWaves();
+        if (nonNull(itemIcon) && itemIcon.isInitialized()) {
+          itemIcon.get().setClickable(true).addEventListener("click", iconListener, true);
         }
       } else {
-        if (nonNull(icon)) {
-          icon.setClickable(false);
+        applyWaves();
+        if (nonNull(itemIcon) && itemIcon.isInitialized()) {
+          itemIcon.get().setClickable(false).removeEventListener("click", iconListener);
+          ;
         }
       }
 
@@ -319,18 +389,16 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
 
   private void toggle() {
     if (isParent()) {
-      if (isCollapsed()) {
-        anchorElement.addCss("toggled");
-      } else {
-        anchorElement.removeCss("toggled");
-      }
-      collapsible.toggleDisplay();
+      toggleCollapse();
     }
   }
 
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> show() {
+  /**
+   * Expands the tree item
+   *
+   * @return same instance
+   */
+  public TreeItem<T> expandNode() {
     return show(false);
   }
 
@@ -342,21 +410,12 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    */
   public TreeItem<T> show(boolean expandParent) {
     if (isParent()) {
-      collapsible.show();
+      super.expand();
     }
     if (expandParent) {
-      getParent().ifPresent(parent -> parent.expand(true));
+      getParent().ifPresent(itemParent -> itemParent.expandNode(true));
     }
     return this;
-  }
-
-  /**
-   * Expands the tree item
-   *
-   * @return same instance
-   */
-  public TreeItem<T> expand() {
-    return show();
   }
 
   /**
@@ -365,73 +424,23 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    * @param expandParent true to expand the parent of the item
    * @return same instance
    */
-  public TreeItem<T> expand(boolean expandParent) {
+  public TreeItem<T> expandNode(boolean expandParent) {
     return show(expandParent);
   }
 
   /** {@inheritDoc} */
   @Override
-  public TreeItem<T> hide() {
+  public TreeItem<T> toggleCollapse() {
     if (isParent()) {
-      collapsible.hide();
+      super.toggleCollapse();
     }
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> toggleDisplay() {
-    if (isParent()) {
-      collapsible.toggleDisplay();
-    }
-    return this;
-  }
-
-  /** @deprecated use {@link #isCollapsed()} {@inheritDoc} */
-  @Override
-  @Deprecated
-  public boolean isHidden() {
-    return collapsible.isCollapsed();
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean isCollapsed() {
-    return collapsible.isCollapsed();
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> addHideListener(Collapsible.HideHandler handler) {
-    collapsible.addHideHandler(handler);
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> removeHideListener(Collapsible.HideHandler handler) {
-    collapsible.removeHideHandler(handler);
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> addShowListener(Collapsible.ShowHandler handler) {
-    collapsible.addShowHandler(handler);
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public TreeItem<T> removeShowListener(Collapsible.ShowHandler handler) {
-    collapsible.removeShowHandler(handler);
     return this;
   }
 
   /** {@inheritDoc} */
   @Override
   public HTMLLIElement element() {
-    return element;
+    return element.element();
   }
 
   /**
@@ -481,6 +490,11 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /** @return A list of tree items representing the path for this item */
+  /**
+   * getPath.
+   *
+   * @return a {@link java.util.List} object
+   */
   public List<TreeItem<T>> getPath() {
     List<TreeItem<T>> items = Tree.getBubblingPath(this);
 
@@ -490,6 +504,11 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /** @return A list of values representing the path for this item */
+  /**
+   * getPathValues.
+   *
+   * @return a {@link java.util.List} object
+   */
   public List<T> getPathValues() {
     List<T> values = Tree.getBubblingPathValues(this);
 
@@ -501,11 +520,8 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   /** Activates the component, GUI effect only */
   @Override
   public void activate() {
-    Style.of(element()).addCss("active");
-    if (isNull(expandIcon) || collapsible.isCollapsed() || !isParent()) {
-      replaceIcon(this.activeIcon);
-    }
-    if (isParent() && collapsible.isCollapsed()) collapsible.show();
+    addCss(dui_active);
+    updateIcon(isCollapsed());
   }
 
   /**
@@ -520,16 +536,6 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
     else activate();
   }
 
-  private void replaceIcon(BaseIcon<?> newIcon) {
-    if (nonNull(newIcon)) {
-      if (nonNull(icon)) {
-        icon.remove();
-      }
-      anchorElement.insertFirst(newIcon);
-      this.icon = newIcon;
-    }
-  }
-
   /** Deactivate the component, GUI effect only */
   @Override
   public void deactivate() {
@@ -542,28 +548,14 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    * @param autoCollapse indicator if item should be collapsed automatically
    */
   public void deactivate(boolean autoCollapse) {
-    Style.of(element()).removeCss("active");
-    if (isNull(expandIcon) || collapsible.isCollapsed() || !isParent()) {
-      restoreIcon();
-    }
+    dui_active.remove(this);
     if (isParent()) {
-      childItems.forEach(subItem -> subItem.deactivate(autoCollapse));
-      if (autoCollapse) {
-        collapsible.hide();
+      childItems.forEach(TreeItem::deactivate);
+      if (getTreeRoot().isAutoCollapse()) {
+        collapse();
       }
     }
-  }
-
-  private void restoreIcon() {
-    if (nonNull(originalIcon)) {
-      icon.remove();
-      anchorElement.insertFirst(originalIcon);
-      this.icon = originalIcon;
-    } else {
-      if (nonNull(icon)) {
-        icon.remove();
-      }
-    }
+    updateIcon(isCollapsed());
   }
 
   /** {@inheritDoc} */
@@ -572,54 +564,42 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
     return anchorElement.element();
   }
 
-  /** {@inheritDoc} */
-  public TreeItem<T> addClickListener(EventListener listener) {
-    getClickableElement().addEventListener(EventType.click.getName(), listener);
-    return this;
-  }
-
   /**
    * Sets the icon of the item
    *
-   * @param icon the new {@link BaseIcon}
+   * @param icon the new {@link org.dominokit.domino.ui.icons.Icon}
    * @return same instance
    */
-  public TreeItem<T> setIcon(BaseIcon<?> icon) {
-    this.icon = icon;
-    this.originalIcon = icon.copy();
-    if (icon.element().style.visibility.equals("hidden")) {
-      this.originalIcon.setCssProperty("visibility", "hidden");
+  public TreeItem<T> setIcon(Icon<?> icon) {
+    if (nonNull(itemIcon)) {
+      if (itemIcon.isInitialized()) {
+        itemIcon.remove();
+      }
     }
-    this.originalIcon.addClickListener(
-        evt -> {
-          if (ToggleTarget.ICON.equals(this.toggleTarget)) {
-            evt.stopPropagation();
-            toggle();
-          }
-          setActiveItem();
+    itemIcon = LazyChild.of(icon.addCss(dui_tree_item_icon), contentElement);
+    itemIcon.whenInitialized(
+        () -> {
+          itemIcon.element().forEachChild(i -> i.addCss(dui_tree_item_icon));
         });
-    return this;
-  }
+    itemIcon.whenInitialized(
+        () -> {
+          if (ToggleTarget.ICON.equals(this.toggleTarget)) {
+            itemIcon.element().clickable();
+          }
+          itemIcon
+              .element()
+              .addClickListener(
+                  evt -> {
+                    if (ToggleTarget.ICON.equals(this.toggleTarget)) {
+                      evt.stopPropagation();
+                      toggle();
+                    }
+                    setActiveItem();
+                  });
+        });
+    itemIcon.get();
+    updateIcon(isCollapsed());
 
-  /**
-   * Sets the icon that will be shown when the item is active
-   *
-   * @param activeIcon the {@link BaseIcon}
-   * @return same instance
-   */
-  public TreeItem<T> setActiveIcon(BaseIcon<?> activeIcon) {
-    this.activeIcon = activeIcon;
-    return this;
-  }
-
-  /**
-   * Sets the expand icon
-   *
-   * @param expandIcon the {@link BaseIcon}
-   * @return same instance
-   */
-  public TreeItem<T> setExpandIcon(BaseIcon<?> expandIcon) {
-    this.expandIcon = expandIcon;
     return this;
   }
 
@@ -632,6 +612,11 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /** @return the title of the item */
+  /**
+   * Getter for the field <code>title</code>.
+   *
+   * @return a {@link java.lang.String} object
+   */
   public String getTitle() {
     return title;
   }
@@ -666,13 +651,13 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
     return search(
         (node, found) -> {
           if (isNull(this.originalState)) {
-            this.originalState = new OriginalState(collapsible.isExpanded());
+            this.originalState = new OriginalState(isExpanded());
           }
 
           if (found || predicate.test(node)) {
             Style.of(element).removeCssProperty("display");
-            if (isParent() && collapsible.isCollapsed()) {
-              collapsible.show();
+            if (isParent() && isCollapsed()) {
+              this.expandNode();
             }
             return true;
           } else {
@@ -684,26 +669,23 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
 
   /** @return true if automatic expanding is enabled when finding items in search */
   public boolean isAutoExpandFound() {
-    return getRootNode().isAutoExpandFound();
+    return getTreeRoot().isAutoExpandFound();
   }
 
   /** Clears the filter applied */
   public void clearFilter() {
     if (nonNull(originalState)) {
-      DomGlobal.requestAnimationFrame(
-          timestamp -> {
-            if (collapsible.isExpanded() != originalState.expanded) {
-              if (this.equals(getRootNode().getActiveItem())) {
-                collapsible.show();
-              } else {
-                collapsible.toggleDisplay(originalState.expanded);
-              }
-            }
-            this.originalState = null;
-          });
+      if (isExpanded() != originalState.expanded) {
+        if (this.equals(this.getTreeRoot().getActiveItem())) {
+          this.expandNode();
+        } else {
+          toggleCollapse(originalState.expanded);
+        }
+      }
+      this.originalState = null;
     }
-    Style.of(element).removeCssProperty("display");
-    childItems.forEach(TreeItem::clearFilter);
+    dui_hidden.remove(this);
+    subItems.forEach(TreeItem::clearFilter);
   }
 
   /**
@@ -720,65 +702,36 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
 
   /** Collapse all children */
   public void collapseAll() {
-    if (isParent() && !collapsible.isCollapsed()) {
-      hide();
-      childItems.forEach(TreeItem::collapseAll);
+    if (isParent() && !isCollapsed()) {
+      addCss(dui_transition_none);
+      subItems.forEach(TreeItem::collapseAll);
+      collapse();
+      dui_transition_none.remove(this);
     }
   }
 
   /** Expand all children */
   public void expandAll() {
-    if (isParent() && collapsible.isCollapsed()) {
-      show();
-      childItems.forEach(TreeItem::expandAll);
+    if (isParent() && isCollapsed()) {
+      addCss(dui_transition_none);
+      this.expandNode();
+      subItems.forEach(TreeItem::expandAll);
+      dui_transition_none.remove(this);
     }
-  }
-
-  /**
-   * Sets the level of this item
-   *
-   * @param level the new level
-   * @return same instance
-   */
-  public TreeItem<T> setLevel(int level) {
-    this.level = level;
-    updateLevelPadding();
-
-    if (isParent()) {
-      childItems.forEach(treeItem -> treeItem.setLevel(level + 1));
-    }
-
-    return this;
-  }
-
-  /**
-   * Sets the level padding of this item
-   *
-   * @param levelPadding the new level padding
-   * @return same instance
-   */
-  public TreeItem<T> setLevelPadding(int levelPadding) {
-    this.levelPadding = levelPadding;
-    updateLevelPadding();
-
-    if (isParent()) {
-      childItems.forEach(treeItem -> treeItem.setLevelPadding(levelPadding));
-    }
-
-    return this;
-  }
-
-  private void updateLevelPadding() {
-    anchorElement.style().setPaddingLeft(px.of(level * levelPadding));
   }
 
   /** {@inheritDoc} */
   @Override
-  public HTMLElement getWavesElement() {
+  public Element getWavesElement() {
     return anchorElement.element();
   }
 
   /** @return true if this item does not have children, false otherwise */
+  /**
+   * isLeaf.
+   *
+   * @return a boolean
+   */
   public boolean isLeaf() {
     return childItems.isEmpty();
   }
@@ -797,6 +750,11 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /** @return the value of the item */
+  /**
+   * Getter for the field <code>value</code>.
+   *
+   * @return a T object
+   */
   public T getValue() {
     return value;
   }
@@ -826,7 +784,7 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   /**
    * Remove all the child tree items.
    *
-   * @return same instance
+   * @return same TreeItem instance
    */
   public TreeItem<T> clear() {
     Tree tree = getRootNode();
@@ -893,59 +851,18 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
     return super.remove();
   }
 
-  /**
-   * Sets the content indicator for this item
-   *
-   * @param indicatorContent a {@link Node}
-   * @return same instance
-   */
-  public TreeItem<T> setIndicatorContent(Node indicatorContent) {
-    indicatorContainer.clearElement();
-    if (nonNull(indicatorContent)) {
-      indicatorContainer.appendChild(indicatorContent);
-    }
-    return this;
-  }
-
-  /**
-   * Sets the content indicator for this item
-   *
-   * @param element a {@link IsElement}
-   * @return same instance
-   */
-  public TreeItem<T> setIndicatorContent(IsElement<?> element) {
-    setIndicatorContent(element.element());
-    return this;
-  }
-
-  /**
-   * Clears the content indicator
-   *
-   * @return same instance
-   */
-  public TreeItem<T> clearIndicator() {
-    indicatorContainer.clearElement();
-    return this;
-  }
-
   public Predicate<TreeNode> createFilterPredicate(String searchToken) {
     return getRootNode().createFilterPredicate(searchToken);
   }
 
-  /** {@inheritDoc} */
-  @Override
-  public Collapsible getCollapsible() {
-    return collapsible;
-  }
-
-  /** @return the content indicator container */
-  public DominoElement<HTMLElement> getIndicatorContainer() {
-    return indicatorContainer;
-  }
-
   /** @return The {@link HTMLElement} that contains the title of this TreeItem */
-  public DominoElement<HTMLElement> getTitleElement() {
-    return DominoElement.of(titleElement);
+  /**
+   * Getter for the field <code>textElement</code>.
+   *
+   * @return a {@link org.dominokit.domino.ui.elements.SpanElement} object
+   */
+  public SpanElement getTextElement() {
+    return textElement.get();
   }
 
   /**
@@ -953,18 +870,99 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
    * used as a value then it will not change when the title is changed to change the value a call to
    * {@link #setValue(T)} should be called
    *
-   * @param title string title to set
-   * @return same instance
+   * @param title String title to set
+   * @return same TreeItem instance
    */
   public TreeItem<T> setTitle(String title) {
     this.title = title;
-    getTitleElement().setTextContent(title);
+    textElement.get().setTextContent(title);
     return this;
   }
 
   /** @return the {@link HTMLUListElement} that contains the tree items */
-  public HTMLUListElement getChildrenContainer() {
-    return childrenContainer;
+  /**
+   * Getter for the field <code>subTree</code>.
+   *
+   * @return a {@link org.dominokit.domino.ui.elements.UListElement} object
+   */
+  public UListElement getSubTree() {
+    return subTree;
+  }
+
+  void onSuppliedIconChanged(Tree.TreeItemIconSupplier<T> iconSupplier) {
+    Icon<?> icon = iconSupplier.createIcon(this);
+    if (nonNull(icon) && isNull(itemIcon)) {
+      setIcon(icon);
+      subItems.forEach(item -> item.onSuppliedIconChanged(iconSupplier));
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> pauseSelectionListeners() {
+    this.selectionListenersPaused = true;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> resumeSelectionListeners() {
+    this.selectionListenersPaused = false;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> togglePauseSelectionListeners(boolean toggle) {
+    this.selectionListenersPaused = toggle;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>> getSelectionListeners() {
+    return this.selectionListeners;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>>
+      getDeselectionListeners() {
+    return this.deselectionListeners;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isSelectionListenersPaused() {
+    return this.selectionListenersPaused;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> triggerSelectionListeners(TreeItem<T> source, TreeItem<T> selection) {
+    if (!isSelectionListenersPaused()) {
+      this.selectionListeners.forEach(
+          selectionListener ->
+              selectionListener.onSelectionChanged(Optional.ofNullable(source), selection));
+    }
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> triggerDeselectionListeners(TreeItem<T> source, TreeItem<T> selection) {
+    if (!isSelectionListenersPaused()) {
+      this.deselectionListeners.forEach(
+          selectionListener ->
+              selectionListener.onSelectionChanged(Optional.ofNullable(source), selection));
+    }
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> getSelection() {
+    return this;
   }
 
   /** {@inheritDoc} */

@@ -17,29 +17,33 @@ package org.dominokit.domino.ui.tree;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.dominokit.domino.ui.tree.TreeStyles.*;
-import static org.jboss.elemento.Elements.*;
 
-import elemental2.dom.*;
+import elemental2.dom.HTMLDivElement;
+import elemental2.dom.HTMLElement;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.dominokit.domino.ui.IsElement;
 import org.dominokit.domino.ui.collapsible.CollapseStrategy;
+import org.dominokit.domino.ui.elements.DivElement;
+import org.dominokit.domino.ui.elements.SpanElement;
+import org.dominokit.domino.ui.elements.UListElement;
 import org.dominokit.domino.ui.icons.Icon;
-import org.dominokit.domino.ui.icons.Icons;
+import org.dominokit.domino.ui.icons.ToggleMdiIcon;
+import org.dominokit.domino.ui.icons.lib.Icons;
 import org.dominokit.domino.ui.search.Search;
-import org.dominokit.domino.ui.style.ColorScheme;
-import org.dominokit.domino.ui.style.Styles;
-import org.dominokit.domino.ui.style.Unit;
-import org.dominokit.domino.ui.utils.BaseDominoElement;
-import org.dominokit.domino.ui.utils.DominoElement;
-import org.dominokit.domino.ui.utils.HasChangeHandlers;
-import org.dominokit.domino.ui.utils.TreeNode;
+import org.dominokit.domino.ui.utils.*;
 
 /**
  * A component provides a tree representation of elements
  *
- * <p>Customize the component can be done by overwriting classes provided by {@link TreeStyles}
+ * <p>Customize the component can be done by overwriting classes provided by {@link
+ * org.dominokit.domino.ui.tree.TreeStyles}
  *
  * <p>For example:
  *
@@ -49,25 +53,30 @@ import org.dominokit.domino.ui.utils.TreeNode;
  *         .setToggleTarget(ToggleTarget.ICON)
  *         .addChangeHandler((treeItem) -> DomGlobal.console.info(treeItem.getValue()))
  *         .addChangeHandler((treeItem) -> Notification.create(treeItem.getTitle()).show())
- *         .appendChild(TreeItem.create("Computer", Icons.ALL.laptop_mdi()))
- *         .appendChild(TreeItem.create("Headset", Icons.ALL.headset_mdi()))
- *         .appendChild(TreeItem.create("Keyboard", Icons.ALL.keyboard_mdi()))
- *         .appendChild(TreeItem.create("Mouse", Icons.ALL.mouse_mdi()))
+ *         .appendChild(TreeItem.create("Computer", Icons.laptop()))
+ *         .appendChild(TreeItem.create("Headset", Icons.headset()))
+ *         .appendChild(TreeItem.create("Keyboard", Icons.keyboard()))
+ *         .appendChild(TreeItem.create("Mouse", Icons.mouse()))
  *         .addSeparator()
- *         .appendChild(TreeItem.create("Laptop", Icons.ALL.laptop_mdi()))
- *         .appendChild(TreeItem.create("Smart phone", Icons.ALL.cellphone_mdi()))
- *         .appendChild(TreeItem.create("Tablet", Icons.ALL.tablet_mdi()))
- *         .appendChild(TreeItem.create("Speaker", Icons.ALL.speaker_mdi()));
+ *         .appendChild(TreeItem.create("Laptop", Icons.laptop()))
+ *         .appendChild(TreeItem.create("Smart phone", Icons.cellphone()))
+ *         .appendChild(TreeItem.create("Tablet", Icons.tablet()))
+ *         .appendChild(TreeItem.create("Speaker", Icons.speaker()));
  * }</pre>
  *
  * @param <T> the type of the object
  * @see BaseDominoElement
+ * @author vegegoku
+ * @version $Id: $Id
  */
 public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
-    implements TreeNode, HasChangeHandlers<Tree<T>, TreeItem<T>> {
+    implements TreeNode,
+        HasChangeListeners<Tree<T>, TreeItem<T>>,
+        IsElement<HTMLDivElement>,
+        TreeStyles,
+        HasSelectionListeners<Tree<T>, TreeItem<T>, TreeItem<T>> {
   public static final Predicate<TreeNode> treeItemOnly = node -> node instanceof TreeItem;
 
-  private final HTMLElement title = DominoElement.of(span()).css(TITLE).element();
   private ToggleTarget toggleTarget = ToggleTarget.ANY;
 
   // Used by filter method based on a searcht token primary provided by a user input, can be a
@@ -77,71 +86,68 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   // Used primary by a programma, based on <T> value test, hence corresponding with the data model
   private Function<T, Predicate<TreeNode>> finder;
 
-  private final HTMLLIElement header =
-      DominoElement.of(li()).css(HEADER).css(MENU_HEADER).add(title).element();
-
-  private final HTMLUListElement root = DominoElement.of(ul()).add(header).css(LIST).element();
-
-  private final HTMLDivElement menu =
-      DominoElement.of(div()).style("overflow-x: hidden").css(MENU).add(root).element();
-
   /* The real active tree item, not necessary being a direct child but well a descendant of the tree */
   private TreeItem<T> activeItem;
 
   private boolean autoCollapse = true;
   private final List<TreeItem<T>> childItems = new ArrayList<>();
   private boolean autoExpandFound;
-  private ColorScheme colorScheme;
-  private Search search;
-  private Icon searchIcon;
-  private Icon collapseAllIcon;
-  private Icon expandAllIcon;
-  private int levelPadding = 15;
+  private LazyChild<Search> search;
+  private LazyChild<PostfixAddOn<?>> collapseExpandAllIcon;
 
   private T value;
 
-  private final List<ChangeHandler<? super TreeItem<T>>> changeHandlers = new ArrayList<>();
-  @Deprecated private final List<ItemClickListener<T>> itemsClickListeners = new ArrayList<>();
+  private final Set<ChangeListener<? super TreeItem<T>>> changeHandlers = new HashSet<>();
   private CollapseStrategy collapseStrategy;
 
+  private DivElement element;
+  private DivElement bodyElement;
+  private UListElement subTree;
+  private LazyChild<TreeHeader> headerElement;
+  private LazyChild<PostfixAddOn<?>> searchIcon;
+  private TreeItemIconSupplier<T> iconSupplier;
+  private boolean selectionListenersPaused;
+  private final Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>>
+      selectionListeners = new HashSet<>();
+  private final Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>>
+      deselectionListeners = new HashSet<>();
+
+  /** Constructor for Tree. */
   public Tree() {
-    this("");
-  }
-
-  public Tree(String treeTitle) {
+    element =
+        div()
+            .addCss(dui_tree)
+            .appendChild(
+                bodyElement =
+                    div().addCss(dui_tree_body).appendChild(subTree = ul().addCss(dui_tree_nav)));
+    headerElement = LazyChild.of(TreeHeader.create(), element);
     init(this);
-    if (isNull(treeTitle) || treeTitle.trim().isEmpty()) {
-      DominoElement.of(header).hide();
-    }
-    title.textContent = treeTitle;
   }
 
+  /**
+   * Constructor for Tree.
+   *
+   * @param treeTitle a {@link java.lang.String} object
+   */
+  public Tree(String treeTitle) {
+    this();
+    headerElement.get().setTitle(treeTitle);
+  }
+
+  /**
+   * Constructor for Tree.
+   *
+   * @param treeTitle a {@link java.lang.String} object
+   * @param value a T object
+   */
   public Tree(String treeTitle, T value) {
     this(treeTitle);
     this.value = value;
   }
 
-  public Tree(T value) {
-    this("");
-    this.value = value;
-  }
-
   /**
-   * @param title the title of the tree
-   * @return new instance
-   */
-  public static Tree<String> create(String title) {
-    return new Tree<>(title);
-  }
-
-  /** @return new instance without title */
-  public static Tree<String> create() {
-    Tree<String> tree = new Tree<>();
-    DominoElement.of(tree.header).hide();
-    return tree;
-  }
-
-  /**
+   * create.
+   *
    * @param title the title of the tree
    * @param value the default selected value
    * @param <T> the type of the object
@@ -152,18 +158,36 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   }
 
   /**
-   * @param value the default selected value
+   * create.
+   *
+   * @param title the default selected value
    * @param <T> the type of the object
    * @return new instance
    */
-  public static <T> Tree<T> create(T value) {
-    return new Tree<>(value);
+  public static <T> Tree<T> create(String title) {
+    return new Tree<>(title);
+  }
+
+  /**
+   * create.
+   *
+   * @param <T> the type of the object
+   * @return new instance
+   */
+  public static <T> Tree<T> create() {
+    return new Tree<>();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public HTMLElement getAppendTarget() {
+    return subTree.element();
   }
 
   /**
    * Adds a new tree item
    *
-   * @param treeItem a new {@link TreeItem}
+   * @param treeItem a new {@link org.dominokit.domino.ui.tree.TreeItem}
    * @return same instance
    */
   public Tree<T> appendChild(TreeItem<T> treeItem) {
@@ -175,16 +199,38 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   @Override
   public TreeNode appendChild(TreeNode node) {
     TreeItem<T> treeItem = (TreeItem<T>) node;
-    root.appendChild(treeItem.element());
+    super.appendChild(treeItem.element());
     treeItem.setParent(this);
-    treeItem.setLevel(1);
-    treeItem.setLevelPadding(levelPadding);
     treeItem.setToggleTarget(this.toggleTarget);
     if (nonNull(collapseStrategy)) {
       treeItem.setCollapseStrategy(collapseStrategy);
     }
     this.childItems.add(treeItem);
+    if (nonNull(iconSupplier)) {
+      treeItem.onSuppliedIconChanged(iconSupplier);
+    }
     return node;
+  }
+
+  /**
+   * setTreeItemIconSupplier.
+   *
+   * @param iconSupplier a {@link org.dominokit.domino.ui.tree.Tree.TreeItemIconSupplier} object
+   * @return a {@link org.dominokit.domino.ui.tree.Tree} object
+   */
+  public Tree<T> setTreeItemIconSupplier(TreeItemIconSupplier<T> iconSupplier) {
+    this.iconSupplier = iconSupplier;
+    if (nonNull(this.iconSupplier)) {
+      childItems.forEach(
+          item -> {
+            item.onSuppliedIconChanged(iconSupplier);
+          });
+    }
+    return this;
+  }
+
+  TreeItemIconSupplier<T> getIconSupplier() {
+    return iconSupplier;
   }
 
   /**
@@ -193,24 +239,14 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    * @return same instance
    */
   public Tree<T> addSeparator() {
-    root.appendChild(DominoElement.of(li()).css("gap").css("separator").add(a()).element());
-    return this;
-  }
-
-  /**
-   * Adds spaces between items
-   *
-   * @return same instance
-   */
-  public Tree<T> addGap() {
-    root.appendChild(DominoElement.of(li()).css("gap").add(a()).element());
+    appendChild(Separator.create());
     return this;
   }
 
   /**
    * Sets what is the target for toggling an item
    *
-   * @param toggleTarget the {@link ToggleTarget}
+   * @param toggleTarget the {@link org.dominokit.domino.ui.tree.ToggleTarget}
    * @return same instance
    */
   public Tree<T> setToggleTarget(ToggleTarget toggleTarget) {
@@ -218,37 +254,6 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
       childItems.forEach(item -> item.setToggleTarget(toggleTarget));
       this.toggleTarget = toggleTarget;
     }
-    return this;
-  }
-
-  /**
-   * Sets level padding for item
-   *
-   * @param levelPadding string with padding for item
-   * @return same instance
-   */
-  public Tree<T> setLevelPadding(int levelPadding) {
-    this.levelPadding = levelPadding;
-    childItems.forEach(item -> item.setLevelPadding(levelPadding));
-
-    return this;
-  }
-
-  /**
-   * Sets the color scheme for the tree
-   *
-   * @param colorScheme the {@link ColorScheme}
-   * @return same instance
-   */
-  public Tree<T> setColorScheme(ColorScheme colorScheme) {
-    if (nonNull(this.colorScheme)) {
-      removeCss(colorScheme.color().getBackground());
-      DominoElement.of(header).removeCss(this.colorScheme.darker_3().getBackground());
-    }
-    this.colorScheme = colorScheme;
-
-    addCss(colorScheme.color().getBackground());
-    DominoElement.of(header).addCss(this.colorScheme.darker_3().getBackground());
     return this;
   }
 
@@ -283,7 +288,7 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    */
   public void setActiveItem(TreeItem<T> activeItem, boolean silent) {
     // The contains operation is not free, check it only by debug mode when assert is enabled.
-    assert activeItem == null || contains(activeItem);
+    assert activeItem == null || contains((TreeNode) activeItem);
 
     if (Objects.equals(this.activeItem, activeItem)) return;
 
@@ -309,10 +314,7 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     }
 
     if (!silent) {
-      changeHandlers.forEach(changeHandler -> changeHandler.onValueChanged(this.activeItem));
-      /* Backward compatibility, can be deleted if deprecated interface/method is removed in new release */
-      itemsClickListeners.forEach(
-          itemClickListener -> itemClickListener.onTreeItemClicked(this.activeItem));
+      // changeHandlers.forEach(changeHandler -> changeHandler.onValueChanged(this.activeItem));
     }
   }
 
@@ -343,67 +345,92 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   }
 
   /** @return the header element */
-  public DominoElement<HTMLLIElement> getHeader() {
-    return DominoElement.of(header);
+  /**
+   * getHeader.
+   *
+   * @return a {@link org.dominokit.domino.ui.tree.TreeHeader} object
+   */
+  public TreeHeader getHeader() {
+    return headerElement.get();
   }
 
   /** @return the root element */
-  public DominoElement<HTMLUListElement> getRoot() {
-    return DominoElement.of(root);
+  /**
+   * Getter for the field <code>subTree</code>.
+   *
+   * @return a {@link org.dominokit.domino.ui.elements.UListElement} object
+   */
+  public UListElement getSubTree() {
+    return subTree;
   }
 
   /** @return the title element */
-  public DominoElement<HTMLElement> getTitle() {
-    return DominoElement.of(title);
-  }
-
   /**
-   * Sets the height of the tree to be automatic based on the content
+   * getTitle.
    *
-   * @return same instance
+   * @return a {@link org.dominokit.domino.ui.elements.SpanElement} object
    */
-  public Tree<T> autoHeight() {
-    root.style.height = CSSProperties.HeightUnionType.of("calc(100vh - 83px)");
-    element().style.height = CSSProperties.HeightUnionType.of("calc(100vh - 70px)");
-    return this;
-  }
-
-  /**
-   * Sets the height of the tree to be automatic based on the content with an offset
-   *
-   * @param offset the offset value
-   * @return same instance
-   */
-  public Tree<T> autoHeight(int offset) {
-    root.style.height = CSSProperties.HeightUnionType.of("calc(100vh - " + offset + 13 + "px)");
-    element().style.height = CSSProperties.HeightUnionType.of("calc(100vh - " + offset + "px)");
-    return this;
+  public SpanElement getTitle() {
+    return headerElement.get().getTitle();
   }
 
   /**
    * Enables the search
    *
    * @return same instance
+   * @param searchable a boolean
    */
-  public Tree<T> enableSearch() {
-    search =
-        Search.create(true)
-            .styler(style -> style.setHeight(Unit.px.of(40)))
-            .onSearch(Tree.this::filter)
-            .onClose(this::clearFilter);
+  public Tree<T> setSearchable(boolean searchable) {
+    if (searchable) {
 
-    searchIcon =
-        Icons.ALL
-            .search()
-            .setMarginBottom("0px")
-            .setMarginTop("0px")
-            .addCss(Styles.pull_right)
-            .setCssProperty("cursor", "pointer");
+      if (isNull(search)) {
+        search =
+            LazyChild.of(
+                Search.create(true).onSearch(Tree.this::filter).onClose(this::clearFilter),
+                headerElement);
 
-    this.header.appendChild(search.element());
-    this.header.appendChild(searchIcon.element());
-    searchIcon.element().addEventListener("click", evt -> search.open());
+        search.whenInitialized(
+            () -> {
+              search
+                  .element()
+                  .getInputElement()
+                  .onKeyDown(
+                      keyEvents -> {
+                        keyEvents.onArrowDown(
+                            evt -> {
+                              childItems.stream()
+                                  .filter(item -> !dui_hidden.isAppliedTo(item))
+                                  .findFirst()
+                                  .ifPresent(item -> item.getClickableElement().focus());
+                            });
+                      });
+            });
+      }
 
+      if (isNull(searchIcon)) {
+        searchIcon =
+            LazyChild.of(
+                PostfixAddOn.of(
+                        Icons.magnify()
+                            .clickable()
+                            .addClickListener(
+                                evt -> {
+                                  evt.stopPropagation();
+                                  search.get().open();
+                                }))
+                    .addCss(dui_tree_header_item),
+                headerElement.get().getContent());
+      }
+      searchIcon.get();
+    } else {
+      if (nonNull(searchIcon)) {
+        searchIcon.remove();
+      }
+
+      if (nonNull(search)) {
+        search.remove();
+      }
+    }
     return this;
   }
 
@@ -411,30 +438,37 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    * Adds the ability to expand/collapse all items
    *
    * @return same instance
+   * @param foldingEnabled a boolean
    */
-  public Tree<T> enableFolding() {
-    collapseAllIcon =
-        Icons.ALL
-            .fullscreen_exit()
-            .setMarginBottom("0px")
-            .setMarginTop("0px")
-            .addCss(Styles.pull_right)
-            .setCssProperty("cursor", "pointer");
-
-    collapseAllIcon.element().addEventListener("click", evt -> collapseAll());
-
-    expandAllIcon =
-        Icons.ALL
-            .fullscreen()
-            .setMarginBottom("0px")
-            .setMarginTop("0px")
-            .addCss(Styles.pull_right)
-            .setCssProperty("cursor", "pointer");
-
-    expandAllIcon.element().addEventListener("click", evt -> expandAll());
-
-    header.appendChild(expandAllIcon.element());
-    header.appendChild(collapseAllIcon.element());
+  public Tree<T> setFoldable(boolean foldingEnabled) {
+    if (foldingEnabled) {
+      if (isNull(collapseExpandAllIcon)) {
+        collapseExpandAllIcon =
+            LazyChild.of(
+                PostfixAddOn.of(
+                        ToggleMdiIcon.create(Icons.fullscreen(), Icons.fullscreen_exit())
+                            .clickable()
+                            .apply(
+                                self ->
+                                    self.addClickListener(
+                                        evt -> {
+                                          evt.stopPropagation();
+                                          if (self.isToggled()) {
+                                            collapseAll();
+                                          } else {
+                                            expandAll();
+                                          }
+                                          self.toggle();
+                                        })))
+                    .addCss(dui_tree_header_item),
+                headerElement.get().getContent());
+      }
+      collapseExpandAllIcon.get();
+    } else {
+      if (nonNull(collapseExpandAllIcon)) {
+        collapseExpandAllIcon.remove();
+      }
+    }
     return this;
   }
 
@@ -464,6 +498,11 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   }
 
   /** @return true if automatic expanding is enabled when finding items in search */
+  /**
+   * isAutoExpandFound.
+   *
+   * @return a boolean
+   */
   public boolean isAutoExpandFound() {
     return autoExpandFound;
   }
@@ -472,9 +511,11 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    * Sets if the items found by the search should be expanded automatically
    *
    * @param autoExpandFound true to expand automatically, false otherwise
+   * @return a {@link org.dominokit.domino.ui.tree.Tree} object
    */
-  public void setAutoExpandFound(boolean autoExpandFound) {
+  public Tree<T> setAutoExpandFound(boolean autoExpandFound) {
     this.autoExpandFound = autoExpandFound;
+    return this;
   }
 
   /** Clears all the filters */
@@ -505,14 +546,27 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    * @return same instance
    */
   public Tree<T> setTitle(String title) {
-    getTitle().setTextContent(title);
-    if (getHeader().isCollapsed()) {
-      getHeader().show();
-    }
+    headerElement.get().setTitle(title);
+    return this;
+  }
+
+  /**
+   * setIcon.
+   *
+   * @param icon a {@link org.dominokit.domino.ui.icons.Icon} object
+   * @return a {@link org.dominokit.domino.ui.tree.Tree} object
+   */
+  public Tree<T> setIcon(Icon<?> icon) {
+    headerElement.get().setIcon(icon);
     return this;
   }
 
   /** @return true if deactivated items should be collapsed automatically */
+  /**
+   * isAutoCollapse.
+   *
+   * @return a boolean
+   */
   public boolean isAutoCollapse() {
     return autoCollapse;
   }
@@ -522,52 +576,51 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     return getChildNodes();
   }
 
-  /** @deprecated no replacement */
-  @Deprecated
-  public Tree<T> expand(boolean expandParent) {
-    return this;
-  }
-
-  /** @deprecated no replacement */
-  @Deprecated
-  public Tree<T> expand() {
-    return this;
-  }
-
-  /** @return the parent item */
-  public Optional<TreeItem<T>> getParent() {
+  /** @return the search element */
+  /**
+   * Getter for the field <code>search</code>.
+   *
+   * @return a {@link java.util.Optional} object
+   */
+  public Optional<Search> getSearch() {
+    if (nonNull(search) && search.isInitialized()) {
+      return Optional.ofNullable(search.get());
+    }
     return Optional.empty();
   }
 
-  /** @deprecated no replacement */
-  @Deprecated
-  public void activate() {}
-
-  /** @deprecated no replacement */
-  @Deprecated
-  public void activate(boolean activateParent) {}
-
-  /** @return the search element */
-  public Search getSearch() {
-    return search;
-  }
-
   /** @return the search icon */
-  public Icon getSearchIcon() {
-    return searchIcon;
+  /**
+   * Getter for the field <code>searchIcon</code>.
+   *
+   * @return a {@link java.util.Optional} object
+   */
+  public Optional<PostfixAddOn<?>> getSearchIcon() {
+    if (nonNull(searchIcon) && search.isInitialized()) {
+      return Optional.of(searchIcon.get());
+    }
+    return Optional.empty();
   }
 
   /** @return the collapse all icon */
-  public Icon getCollapseAllIcon() {
-    return collapseAllIcon;
-  }
-
-  /** @return the expand all icon */
-  public Icon getExpandAllIcon() {
-    return expandAllIcon;
+  /**
+   * Getter for the field <code>collapseExpandAllIcon</code>.
+   *
+   * @return a {@link java.util.Optional} object
+   */
+  public Optional<PostfixAddOn<?>> getCollapseExpandAllIcon() {
+    if (nonNull(collapseExpandAllIcon) && collapseExpandAllIcon.isInitialized()) {
+      return Optional.of(collapseExpandAllIcon.get());
+    }
+    return Optional.empty();
   }
 
   /** @return the current value */
+  /**
+   * Getter for the field <code>value</code>.
+   *
+   * @return a T object
+   */
   public T getValue() {
     return value;
   }
@@ -581,33 +634,12 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     this.value = value;
   }
 
-  /**
-   * Adds a click listener to be called when item is clicked
-   *
-   * @param itemClickListener a {@link ItemClickListener}
-   * @return same instance
-   * @deprecated use {@link HasChangeHandlers#addChangeHandler(ChangeHandler)} instead
-   */
-  @Deprecated
-  public Tree<T> addItemClickListener(ItemClickListener<T> itemClickListener) {
-    this.itemsClickListeners.add(itemClickListener);
-    return this;
-  }
-
-  /**
-   * Removes a click listener
-   *
-   * @param itemClickListener a {@link ItemClickListener} to be removed
-   * @return same instance
-   * @deprecated use {@link HasChangeHandlers#removeChangeHandler(ChangeHandler)} instead
-   */
-  @Deprecated
-  public Tree<T> removeItemClickListener(ItemClickListener<T> itemClickListener) {
-    this.itemsClickListeners.remove(itemClickListener);
-    return this;
-  }
-
   /** @return the list of the items in the current active path */
+  /**
+   * getActivePath.
+   *
+   * @return a {@link java.util.List} object
+   */
   public List<TreeItem<T>> getActivePath() {
     List<TreeItem<T>> activeItems = getActiveBubblingPath();
 
@@ -625,6 +657,11 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
   }
 
   /** @return the list of values in the current active path */
+  /**
+   * getActivePathValues.
+   *
+   * @return a {@link java.util.List} object
+   */
   public List<T> getActivePathValues() {
     List<T> activeValues = getBubblingPathValues(activeItem);
 
@@ -673,7 +710,7 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
    * Sets the filter that will be used when searching items, the default filter searches using the
    * title of the items
    *
-   * @param filter a {@link TreeItemFilter}
+   * @param filter a {@link org.dominokit.domino.ui.tree.TreeItemFilter}
    * @return same instance
    * @deprecated use {@link #setFilter(Function)}} instead
    */
@@ -751,40 +788,103 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     return this;
   }
 
+  /** {@inheritDoc} */
   public Tree<T> setCollapseStrategy(CollapseStrategy collapseStrategy) {
     getChildNodes().forEach(tTreeItem -> setCollapseStrategy(collapseStrategy));
     this.collapseStrategy = collapseStrategy;
     return this;
   }
 
+  /**
+   * Getter for the field <code>collapseStrategy</code>.
+   *
+   * @return a {@link org.dominokit.domino.ui.collapsible.CollapseStrategy} object
+   */
   public CollapseStrategy getCollapseStrategy() {
     return collapseStrategy;
+  }
+
+  /**
+   * withHeader.
+   *
+   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} object
+   * @return a {@link org.dominokit.domino.ui.tree.Tree} object
+   */
+  public Tree<T> withHeader(ChildHandler<Tree<T>, TreeHeader> handler) {
+    handler.apply(this, headerElement.get());
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Tree<T> pauseSelectionListeners() {
+    this.selectionListenersPaused = true;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Tree<T> resumeSelectionListeners() {
+    this.selectionListenersPaused = false;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Tree<T> togglePauseSelectionListeners(boolean toggle) {
+    this.selectionListenersPaused = toggle;
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>> getSelectionListeners() {
+    return this.selectionListeners;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<SelectionListener<? super TreeItem<T>, ? super TreeItem<T>>>
+      getDeselectionListeners() {
+    return this.deselectionListeners;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isSelectionListenersPaused() {
+    return this.selectionListenersPaused;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Tree<T> triggerSelectionListeners(TreeItem<T> source, TreeItem<T> selection) {
+    if (!this.selectionListenersPaused) {
+      this.selectionListeners.forEach(
+          listener -> listener.onSelectionChanged(Optional.ofNullable(source), selection));
+    }
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Tree<T> triggerDeselectionListeners(TreeItem<T> source, TreeItem<T> selection) {
+    if (!this.selectionListenersPaused) {
+      this.deselectionListeners.forEach(
+          listener -> listener.onSelectionChanged(Optional.ofNullable(source), selection));
+    }
+    return this;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public TreeItem<T> getSelection() {
+    return this.activeItem;
   }
 
   /** {@inheritDoc} */
   @Override
   public HTMLDivElement element() {
-    return menu;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public Tree<T> addChangeHandler(ChangeHandler<? super TreeItem<T>> changeHandler) {
-    changeHandlers.add(changeHandler);
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public Tree<T> removeChangeHandler(ChangeHandler<? super TreeItem<T>> changeHandler) {
-    changeHandlers.remove(changeHandler);
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean hasChangeHandler(ChangeHandler<? super TreeItem<T>> changeHandler) {
-    return changeHandlers.contains(changeHandler);
+    return element.element();
   }
 
   /** {@inheritDoc} */
@@ -800,15 +900,38 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     return childItems;
   }
 
-  /**
-   * A listener to be called when clicking on item
-   *
-   * @param <T> the type of the object
-   * @deprecated use {@link ChangeHandler} instead
-   */
-  @Deprecated
-  public interface ItemClickListener<T> {
-    void onTreeItemClicked(TreeItem<T> treeItem);
+  @Override
+  public Tree<T> pauseChangeListeners() {
+    return this;
+  }
+
+  @Override
+  public Tree<T> resumeChangeListeners() {
+    return this;
+  }
+
+  @Override
+  public Tree<T> togglePauseChangeListeners(boolean toggle) {
+    return this;
+  }
+
+  @Override
+  public Set<ChangeListener<? super TreeItem<T>>> getChangeListeners() {
+    return changeHandlers;
+  }
+
+  @Override
+  public boolean isChangeListenersPaused() {
+    return false;
+  }
+
+  @Override
+  public Tree<T> triggerChangeListeners(TreeItem<T> oldValue, TreeItem<T> newValue) {
+    return this;
+  }
+
+  public interface TreeItemIconSupplier<T> {
+    Icon<?> createIcon(TreeItem<T> item);
   }
 
   /**
