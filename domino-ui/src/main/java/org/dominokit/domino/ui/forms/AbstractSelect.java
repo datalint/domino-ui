@@ -314,7 +314,7 @@ public abstract class AbstractSelect<T, V, S extends AbstractSelect<T, V, S>>
   }
 
   private DropdownAction<SelectOption<V>> asDropDownAction(SelectOption<V> option) {
-    return DropdownAction.create(option, optionRenderer.element(option))
+    return DropdownAction.create(optionRenderer.element(option), option)
         .setAutoClose(this.autoCloseOnSelect)
         .setExcludeFromSearchResults(option.isExcludeFromSearchResults())
         .addSelectionHandler(

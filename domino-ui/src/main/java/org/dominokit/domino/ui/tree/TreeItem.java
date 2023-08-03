@@ -69,7 +69,7 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   private HTMLElement titleElement;
   private OriginalState originalState;
 
-  public TreeItem(String title, BaseIcon<?> icon) {
+  public TreeItem(BaseIcon<?> icon, String title) {
     this.title = title;
     setIcon(icon);
     titleElement = DominoElement.of(span()).css("title").textContent(title).element();
@@ -113,7 +113,7 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   public TreeItem(String title) {
-    this(title, Icons.ALL.folder().setCssProperty("visibility", "hidden"));
+    this(Icons.ALL.folder().setCssProperty("visibility", "hidden"), title);
   }
 
   public TreeItem(BaseIcon<?> icon) {
@@ -127,13 +127,8 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
     this.value = value;
   }
 
-  public TreeItem(String title, BaseIcon<?> icon, T value) {
-    this(title, icon);
-    this.value = value;
-  }
-
-  public TreeItem(BaseIcon<?> icon, T value) {
-    this(icon);
+  public TreeItem(BaseIcon<?> icon, String title, T value) {
+    this(icon, title);
     this.value = value;
   }
 
@@ -150,14 +145,14 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /**
-   * Creates new tree item with a title and an icon
+   * Creates new tree item with an icon and a title
    *
-   * @param title the title of the item
    * @param icon the item's {@link BaseIcon}
+   * @param title the title of the item
    * @return new instance
    */
-  public static TreeItem<String> create(String title, BaseIcon<?> icon) {
-    TreeItem<String> treeItem = new TreeItem<>(title, icon);
+  public static TreeItem<String> create(BaseIcon<?> icon, String title) {
+    TreeItem<String> treeItem = new TreeItem<>(icon, title);
     treeItem.value = title;
     return treeItem;
   }
@@ -187,28 +182,16 @@ public class TreeItem<T> extends WavesElement<HTMLLIElement, TreeItem<T>>
   }
 
   /**
-   * Creates new tree item with a title, an icon and a value
+   * Creates new tree item with an icon, a title and a value
    *
+   * @param icon the item's {@link BaseIcon}
    * @param title the title of the item
-   * @param icon the item's {@link BaseIcon}
    * @param value the value of the item
    * @param <T> the type of the value
    * @return new instance
    */
-  public static <T> TreeItem<T> create(String title, BaseIcon<?> icon, T value) {
-    return new TreeItem<>(title, icon, value);
-  }
-
-  /**
-   * Creates new tree item with an icon and a value
-   *
-   * @param icon the item's {@link BaseIcon}
-   * @param value the value of the item
-   * @param <T> the type of the value
-   * @return new instance
-   */
-  public static <T> TreeItem<T> create(BaseIcon<?> icon, T value) {
-    return new TreeItem<>(icon, value);
+  public static <T> TreeItem<T> create(BaseIcon<?> icon, String title, T value) {
+    return new TreeItem<>(icon, title, value);
   }
 
   private void init() {

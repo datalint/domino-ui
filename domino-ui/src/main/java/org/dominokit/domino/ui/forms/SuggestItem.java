@@ -32,20 +32,20 @@ public class SuggestItem<T> {
   private final String displayValue;
 
   /**
-   * @param value T
    * @param displayValue String
+   * @param value T
    */
-  public SuggestItem(T value, String displayValue) {
-    this(value, displayValue, Icons.ALL.text_fields());
+  public SuggestItem(String displayValue, T value) {
+    this(Icons.ALL.text_fields(), displayValue, value);
   }
 
   /**
-   * @param value T
-   * @param displayValue String
    * @param icon {@link org.dominokit.domino.ui.icons.Icon}
+   * @param displayValue String
+   * @param value T
    */
-  public SuggestItem(T value, String displayValue, BaseIcon<?> icon) {
-    element = DropdownAction.create(value, displayValue, icon);
+  public SuggestItem(BaseIcon<?> icon, String displayValue, T value) {
+    element = DropdownAction.create(icon, displayValue, value);
     this.value = value;
     this.displayValue = displayValue;
   }
@@ -61,24 +61,24 @@ public class SuggestItem<T> {
   }
 
   /**
-   * @param value T
    * @param displayValue String
+   * @param value T
    * @param <T> the type of the SuggestItem value
    * @return new SuggestItem instance
    */
-  public static <T> SuggestItem<T> create(T value, String displayValue) {
-    return new SuggestItem<>(value, displayValue);
+  public static <T> SuggestItem<T> create(String displayValue, T value) {
+    return new SuggestItem<>(displayValue, value);
   }
 
   /**
-   * @param value T
-   * @param displayValue String
    * @param icon {@link org.dominokit.domino.ui.icons.Icon}
+   * @param displayValue String
+   * @param value T
    * @param <T> the type of the SuggestItem value
    * @return new SuggestItem instance
    */
-  public static <T> SuggestItem<T> create(T value, String displayValue, BaseIcon<?> icon) {
-    return new SuggestItem<>(value, displayValue, icon);
+  public static <T> SuggestItem<T> create(BaseIcon<?> icon, String displayValue, T value) {
+    return new SuggestItem<>(icon, displayValue, value);
   }
 
   /**

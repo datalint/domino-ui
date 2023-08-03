@@ -118,14 +118,12 @@ public class Tab extends BaseDominoElement<HTMLLIElement, Tab> implements HasCli
   }
 
   /**
-   * @param key String unique identifier for the tab
    * @param title String tab header title
+   * @param key String unique identifier for the tab
    * @return new Tab instance
    */
-  public static Tab create(String key, String title) {
-    Tab tab = new Tab(title);
-    tab.setKey(key);
-    return tab;
+  public static Tab create(String title, String key) {
+    return new Tab(title).setKey(key);
   }
 
   /**
@@ -134,17 +132,6 @@ public class Tab extends BaseDominoElement<HTMLLIElement, Tab> implements HasCli
    */
   public static Tab create(BaseIcon<?> icon) {
     return new Tab(icon);
-  }
-
-  /**
-   * @param key String unique identifier for the tab
-   * @param icon icon {@link BaseIcon} for the tab header
-   * @return new Tab instance
-   */
-  public static Tab create(String key, BaseIcon<?> icon) {
-    Tab tab = new Tab(icon);
-    tab.setKey(key);
-    return tab;
   }
 
   /**
@@ -157,15 +144,13 @@ public class Tab extends BaseDominoElement<HTMLLIElement, Tab> implements HasCli
   }
 
   /**
-   * @param key String unique identifier for the tab
    * @param icon icon {@link BaseIcon} for the tab header
    * @param title String title for the tab header
+   * @param key String unique identifier for the tab
    * @return new Tab instance
    */
-  public static Tab create(String key, BaseIcon<?> icon, String title) {
-    Tab tab = new Tab(icon, title);
-    tab.setKey(key);
-    return tab;
+  public static Tab create(BaseIcon<?> icon, String title, String key) {
+    return new Tab(icon, title, key);
   }
 
   /** @return the Tab {@link HTMLLIElement} wrapped as {@link DominoElement} */

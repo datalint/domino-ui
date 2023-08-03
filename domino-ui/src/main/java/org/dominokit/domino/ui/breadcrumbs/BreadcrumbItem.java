@@ -58,14 +58,14 @@ public class BreadcrumbItem extends BaseDominoElement<HTMLLIElement, BreadcrumbI
   private boolean active = false;
 
   protected BreadcrumbItem(String text) {
-    init(text, null);
+    init(null, text);
   }
 
-  protected BreadcrumbItem(String text, BaseIcon<?> icon) {
-    init(text, icon);
+  protected BreadcrumbItem(BaseIcon<?> icon, String text) {
+    init(icon, text);
   }
 
-  private void init(String text, BaseIcon<?> icon) {
+  private void init(BaseIcon<?> icon, String text) {
     init(this);
     this.textElement = TextNode.of(text);
     if (nonNull(icon)) {
@@ -88,14 +88,14 @@ public class BreadcrumbItem extends BaseDominoElement<HTMLLIElement, BreadcrumbI
   }
 
   /**
-   * Creates item with text content and icon
+   * Creates item with icon and text content
    *
-   * @param text the content of the item
    * @param icon the {@link BaseIcon} of the item
+   * @param text the content of the item
    * @return new instance
    */
-  public static BreadcrumbItem create(String text, BaseIcon<?> icon) {
-    return new BreadcrumbItem(text, icon);
+  public static BreadcrumbItem create(BaseIcon<?> icon, String text) {
+    return new BreadcrumbItem(icon, text);
   }
 
   /**

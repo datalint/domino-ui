@@ -60,10 +60,10 @@ public class VerticalTab extends WavesElement<HTMLDivElement, VerticalTab>
   private Color color = Color.GREY_DARKEN_3;
 
   /**
-   * @param title String tab header title
    * @param icon icon {@link BaseIcon} for the tab header
+   * @param title String tab header title
    */
-  public VerticalTab(String title, BaseIcon<?> icon) {
+  public VerticalTab(BaseIcon<?> icon, String title) {
     this.title = title;
     setIcon(icon);
     this.titleElement = DominoElement.of(span()).css(TITLE).textContent(title);
@@ -103,12 +103,12 @@ public class VerticalTab extends WavesElement<HTMLDivElement, VerticalTab>
   }
 
   /**
-   * @param title String title for the tab header
    * @param icon icon {@link BaseIcon} for the tab header
+   * @param title String title for the tab header
    * @return new instance
    */
-  public static VerticalTab create(String title, BaseIcon<?> icon) {
-    return new VerticalTab(title, icon);
+  public static VerticalTab create(BaseIcon<?> icon, String title) {
+    return new VerticalTab(icon, title);
   }
 
   /**

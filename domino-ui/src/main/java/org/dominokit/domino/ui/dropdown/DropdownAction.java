@@ -66,11 +66,11 @@ public class DropdownAction<T> extends BaseDominoElement<HTMLLIElement, Dropdown
   private boolean excludeFromSearchResults = false;
   public static final JsRegExp REPLACER_REGEX = new JsRegExp("[-\\/\\\\^$*+?.()|[\\]{}]", "g");
 
-  public DropdownAction(T value, String displayValue) {
-    this(value, displayValue, null);
+  public DropdownAction(String displayValue, T value) {
+    this(null, displayValue, value);
   }
 
-  public DropdownAction(T value, String displayValue, BaseIcon<?> icon) {
+  public DropdownAction(BaseIcon<?> icon, String displayValue, T value) {
     this.value = value;
     init();
     if (nonNull(icon)) {
@@ -81,7 +81,7 @@ public class DropdownAction<T> extends BaseDominoElement<HTMLLIElement, Dropdown
     init(this);
   }
 
-  public DropdownAction(T value, HTMLElement content) {
+  public DropdownAction(HTMLElement content, T value) {
     this.value = value;
     this.content.appendChild(content);
     init();
@@ -120,40 +120,40 @@ public class DropdownAction<T> extends BaseDominoElement<HTMLLIElement, Dropdown
   }
 
   /**
-   * Creates an action with {@code T} as a value, {@code displayValue} to be shown, and an icon
+   * Creates an action with an icon, {@code displayValue} to be shown, and {@code T} as a value
    *
-   * @param value the value object
-   * @param displayValue the display value text
    * @param icon the icon
-   * @param <T> the type of the value
-   * @return new instance
-   */
-  public static <T> DropdownAction<T> create(T value, String displayValue, BaseIcon<?> icon) {
-    return new DropdownAction<>(value, displayValue, icon);
-  }
-
-  /**
-   * Creates an action with {@code T} as a value and a {@code displayValue} to be shown
-   *
-   * @param value the value object
    * @param displayValue the display value text
+   * @param value the value object
    * @param <T> the type of the value
    * @return new instance
    */
-  public static <T> DropdownAction<T> create(T value, String displayValue) {
-    return new DropdownAction<>(value, displayValue);
+  public static <T> DropdownAction<T> create(BaseIcon<?> icon, String displayValue, T value) {
+    return new DropdownAction<>(icon, displayValue, value);
   }
 
   /**
-   * Creates an action with {@code T} as a value and a content {@link HTMLElement}
+   * Creates an action with a {@code displayValue} and {@code T} as a value to be shown
    *
+   * @param displayValue the display value text
    * @param value the value object
-   * @param content The content of the action as {@link HTMLElement}
    * @param <T> the type of the value
    * @return new instance
    */
-  public static <T> DropdownAction<T> create(T value, HTMLElement content) {
-    return new DropdownAction<>(value, content);
+  public static <T> DropdownAction<T> create(String displayValue, T value) {
+    return new DropdownAction<>(displayValue, value);
+  }
+
+  /**
+   * Creates an action with a content {@link HTMLElement} and {@code T} as a value
+   *
+   * @param content The content of the action as {@link HTMLElement}
+   * @param value the value object
+   * @param <T> the type of the value
+   * @return new instance
+   */
+  public static <T> DropdownAction<T> create(HTMLElement content, T value) {
+    return new DropdownAction<>(content, value);
   }
 
   /**

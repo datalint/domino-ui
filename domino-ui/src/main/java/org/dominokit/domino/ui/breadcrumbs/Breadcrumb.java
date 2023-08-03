@@ -92,15 +92,15 @@ public class Breadcrumb extends BaseDominoElement<HTMLOListElement, Breadcrumb>
   }
 
   /**
-   * Adds new location with {@code text}, {@code icon} and {@code onClick} listener
+   * Adds new location with {@code icon}, {@code text} and {@code onClick} listener
    *
-   * @param text the label of the location
    * @param icon the {@link BaseIcon} of the location
+   * @param text the label of the location
    * @param onClick {@link EventListener} that will be called when the location is clicked
    * @return same instance
    */
-  public Breadcrumb appendChild(String text, BaseIcon<?> icon, EventListener onClick) {
-    BreadcrumbItem item = BreadcrumbItem.create(text, icon);
+  public Breadcrumb appendChild(BaseIcon<?> icon, String text, EventListener onClick) {
+    BreadcrumbItem item = BreadcrumbItem.create(icon, text);
     addAndActivateNewItem(item);
     item.addClickListener(onClick);
     return this;
