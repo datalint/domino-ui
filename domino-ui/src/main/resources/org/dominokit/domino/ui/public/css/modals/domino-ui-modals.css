@@ -54,6 +54,10 @@ body.modal-open {
     max-height: calc(100vh);
 }
 
+.modal:not([class*="-sheet"]) .modal-content {
+    max-height: calc(100vh - 60px);
+}
+
 .modal-backdrop {
     position: fixed;
     top: 0;
