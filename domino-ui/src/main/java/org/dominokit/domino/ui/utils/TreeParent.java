@@ -26,8 +26,6 @@ import org.dominokit.domino.ui.tree.TreeItemFilter;
  * An interface representing a parent tree item
  *
  * @param <T> the type of the object
- * @author vegegoku
- * @version $Id: $Id
  * @deprecated use {@link TreeNode} instead
  */
 @Deprecated

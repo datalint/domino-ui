@@ -66,8 +66,6 @@ import org.dominokit.domino.ui.utils.*;
  *
  * @param <T> the type of the object
  * @see BaseDominoElement
- * @author vegegoku
- * @version $Id: $Id
  */
 public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     implements TreeNode,

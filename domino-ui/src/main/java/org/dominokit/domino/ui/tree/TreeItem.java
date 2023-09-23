@@ -103,7 +103,8 @@ public class TreeItem<T> extends BaseDominoElement<HTMLLIElement, TreeItem<T>>
         li().addCss(dui_tree_item)
             .appendChild(
                 anchorElement =
-                    a().addCss(dui_tree_anchor)
+                    a().removeHref()
+                        .addCss(dui_tree_anchor)
                         .appendChild(contentElement = div().addCss(dui_tree_item_content)))
             .appendChild(subTree = ul().addCss(dui_tree_nav).hide());
     this.textElement = LazyChild.of(span().addCss(dui_tree_item_text), contentElement);
