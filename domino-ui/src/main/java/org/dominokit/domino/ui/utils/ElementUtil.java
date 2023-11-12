@@ -26,7 +26,7 @@ import org.gwtproject.i18n.client.NumberFormat;
 import org.gwtproject.i18n.shared.cldr.LocaleInfo;
 import org.gwtproject.i18n.shared.cldr.NumberConstants;
 import org.jboss.elemento.EventType;
-import org.jboss.elemento.HtmlContentBuilder;
+import org.jboss.elemento.HTMLContainerBuilder;
 import org.jboss.elemento.IsElement;
 import org.jboss.elemento.ObserverCallback;
 
@@ -61,19 +61,20 @@ public class ElementUtil {
   /**
    * @param element the target element
    * @param <E> the type extending from {@link HTMLElement}
-   * @return new {@link HtmlContentBuilder} for the provided element
+   * @return new {@link HTMLContainerBuilder} for the provided element
    */
-  public static <E extends HTMLElement> HtmlContentBuilder<E> contentBuilder(E element) {
-    return new HtmlContentBuilder<>(element);
+  public static <E extends HTMLElement> HTMLContainerBuilder<E> contentBuilder(E element) {
+    return new HTMLContainerBuilder<>(element);
   }
 
   /**
    * @param element the target {@link IsElement}
    * @param <E> the type extending from {@link HTMLElement}
-   * @return new {@link HtmlContentBuilder} for the provided element
+   * @return new {@link HTMLContainerBuilder} for the provided element
    */
-  public static <E extends HTMLElement> HtmlContentBuilder<E> contentBuilder(IsElement<E> element) {
-    return new HtmlContentBuilder<>(element.element());
+  public static <E extends HTMLElement> HTMLContainerBuilder<E> contentBuilder(
+      IsElement<E> element) {
+    return new HTMLContainerBuilder<>(element.element());
   }
 
   /**
@@ -161,7 +162,7 @@ public class ElementUtil {
    * @return an Optional {@link ElementObserver}
    */
   public static Optional<ElementObserver> onAttach(
-      IsElement<?> element, ObserverCallback callback) {
+      IsElement<? extends HTMLElement> element, ObserverCallback callback) {
     if (element != null) {
       DominoElement.of(element).onAttached(callback);
     }
@@ -196,7 +197,7 @@ public class ElementUtil {
    * @return an Optional {@link ElementObserver}
    */
   public static Optional<ElementObserver> onDetach(
-      IsElement<?> element, ObserverCallback callback) {
+      IsElement<? extends HTMLElement> element, ObserverCallback callback) {
     if (element != null) {
       DominoElement.of(element).onDetached(callback);
     }
@@ -287,7 +288,7 @@ public class ElementUtil {
    *
    * @param isElement {@link IsElement}
    */
-  public static void scrollToElement(IsElement<?> isElement) {
+  public static void scrollToElement(IsElement<? extends HTMLElement> isElement) {
     scrollToElement(isElement.element());
   }
 

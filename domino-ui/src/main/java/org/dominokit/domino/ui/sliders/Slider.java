@@ -457,7 +457,7 @@ public class Slider extends BaseDominoElement<HTMLParagraphElement, Slider>
    * @param leftAddon {@link IsElement} to be added as an addon to the left of the slider
    * @return same Slider instance
    */
-  public Slider setLeftAddon(IsElement<?> leftAddon) {
+  public Slider setLeftAddon(IsElement<? extends HTMLElement> leftAddon) {
     return setLeftAddon(leftAddon.element());
   }
 
@@ -476,7 +476,7 @@ public class Slider extends BaseDominoElement<HTMLParagraphElement, Slider>
    * @param rightAddon {@link IsElement} to be added as an addon to the right of the slider
    * @return same Slider instance
    */
-  public Slider setRightAddon(IsElement<?> rightAddon) {
+  public Slider setRightAddon(IsElement<? extends HTMLElement> rightAddon) {
     return setRightAddon(rightAddon.element());
   }
 

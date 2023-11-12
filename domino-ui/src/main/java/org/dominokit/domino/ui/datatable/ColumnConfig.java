@@ -20,6 +20,7 @@ import static java.util.Objects.nonNull;
 import static org.dominokit.domino.ui.datatable.ColumnUtils.fixElementWidth;
 import static org.jboss.elemento.Elements.th;
 
+import elemental2.dom.HTMLElement;
 import elemental2.dom.HTMLTableCellElement;
 import elemental2.dom.HTMLTableRowElement;
 import elemental2.dom.Node;
@@ -1040,7 +1041,7 @@ public class ColumnConfig<T> {
     return parent;
   }
 
-  public ColumnConfig<T> appendChild(IsElement<?> element) {
+  public ColumnConfig<T> appendChild(IsElement<? extends HTMLElement> element) {
     flexLayout.appendChild(FlexItem.of(element));
     return this;
   }

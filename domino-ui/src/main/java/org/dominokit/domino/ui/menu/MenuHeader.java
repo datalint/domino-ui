@@ -104,7 +104,7 @@ public class MenuHeader<V, T extends AbstractMenu<V, T>>
    * @param element {@link IsElement}
    * @return same header instance
    */
-  public MenuHeader<V, T> appendAction(IsElement<?> element) {
+  public MenuHeader<V, T> appendAction(IsElement<? extends HTMLElement> element) {
     actionsElement.appendChild(FlexItem.of(element).css("header-action"));
     return this;
   }

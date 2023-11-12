@@ -39,7 +39,7 @@ import org.dominokit.domino.ui.utils.DominoUIConfig;
 import org.dominokit.domino.ui.utils.HasBackground;
 import org.dominokit.domino.ui.utils.TextNode;
 import org.jboss.elemento.EventType;
-import org.jboss.elemento.HtmlContentBuilder;
+import org.jboss.elemento.HTMLContainerBuilder;
 import org.jboss.elemento.IsElement;
 
 /**
@@ -86,7 +86,7 @@ public class Card extends BaseDominoElement<HTMLDivElement, Card> implements Has
   private BaseIcon<?> collapseIcon;
   private Color headerBackground;
   private Color bodyBackground;
-  private HtmlContentBuilder<HTMLAnchorElement> collapseAnchor;
+  private HTMLContainerBuilder<HTMLAnchorElement> collapseAnchor;
 
   public Card() {
     headerTitle.appendChild(title).appendChild(headerDescription);

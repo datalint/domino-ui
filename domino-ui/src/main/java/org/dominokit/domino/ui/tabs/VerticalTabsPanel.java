@@ -306,7 +306,7 @@ public class VerticalTabsPanel extends BaseDominoElement<HTMLDivElement, Vertica
    *     content
    * @return same VerticalTabsPanel instance
    */
-  public VerticalTabsPanel setContentContainer(IsElement<?> contentContainer) {
+  public VerticalTabsPanel setContentContainer(IsElement<? extends HTMLElement> contentContainer) {
     return setContentContainer(contentContainer.element());
   }
 

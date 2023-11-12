@@ -287,7 +287,7 @@ public class TabsPanel extends BaseDominoElement<HTMLDivElement, TabsPanel>
    *     content
    * @return same TabsPanel instance
    */
-  public TabsPanel setContentContainer(IsElement<?> contentContainer) {
+  public TabsPanel setContentContainer(IsElement<? extends HTMLElement> contentContainer) {
     return setContentContainer(contentContainer.element());
   }
 

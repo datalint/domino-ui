@@ -101,7 +101,7 @@ public class Collapsible implements IsElement<HTMLElement>, IsCollapsible<Collap
    *
    * @param isElement {@link IsElement} to be wrapped in a collapsible
    */
-  public static Collapsible create(IsElement<?> isElement) {
+  public static Collapsible create(IsElement<? extends HTMLElement> isElement) {
     return create(isElement.element());
   }
 

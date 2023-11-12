@@ -510,7 +510,7 @@ public class Layout extends BaseDominoElement<HTMLDivElement, Layout> {
    * @param element {@link IsElement} action HTMLElement content
    * @return the {@link HTMLElement} of the created action
    */
-  public HTMLElement addActionItem(IsElement<?> element) {
+  public HTMLElement addActionItem(IsElement<? extends HTMLElement> element) {
     return addActionItem(element.element());
   }
 

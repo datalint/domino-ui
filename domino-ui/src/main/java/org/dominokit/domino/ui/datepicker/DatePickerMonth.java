@@ -35,7 +35,7 @@ import org.dominokit.domino.ui.utils.HasValue;
 import org.dominokit.domino.ui.utils.TextUtil;
 import org.gwtproject.editor.client.TakesValue;
 import org.gwtproject.i18n.shared.cldr.DateTimeFormatInfo;
-import org.jboss.elemento.HtmlContentBuilder;
+import org.jboss.elemento.HTMLContainerBuilder;
 import org.jboss.elemento.IsElement;
 
 /**
@@ -97,9 +97,9 @@ public class DatePickerMonth
   }
 
   private void createMarkup() {
-    HtmlContentBuilder<HTMLTableElement> table = table().css(DatePickerStyles.DATE_PICKER);
+    HTMLContainerBuilder<HTMLTableElement> table = table().css(DatePickerStyles.DATE_PICKER);
 
-    HtmlContentBuilder<HTMLTableSectionElement> thead =
+    HTMLContainerBuilder<HTMLTableSectionElement> thead =
         thead()
             .add(
                 tr().add(createDayHeader(0, monthData).getElement())
