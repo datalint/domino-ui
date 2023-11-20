@@ -89,8 +89,7 @@ public class SelectionPlugin<T> implements DataTablePlugin<T> {
    * @param colorScheme {@link ColorScheme} the selected row background color
    * @param singleSelectIndicator {@link IsElement} to use a selection indicator
    */
-  public SelectionPlugin(
-      ColorScheme colorScheme, IsElement<? extends HTMLElement> singleSelectIndicator) {
+  public SelectionPlugin(ColorScheme colorScheme, IsElement<?> singleSelectIndicator) {
     this(colorScheme, singleSelectIndicator.element());
   }
 

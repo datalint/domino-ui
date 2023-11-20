@@ -99,7 +99,7 @@ public class Animation {
    * @param element an {@link IsElement} to be animated
    * @return an {@link Animation} instance
    */
-  public static Animation create(IsElement<? extends HTMLElement> element) {
+  public static Animation create(IsElement<?> element) {
     return new Animation(element.element());
   }
 

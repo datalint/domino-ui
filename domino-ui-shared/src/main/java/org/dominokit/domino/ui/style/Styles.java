@@ -17,7 +17,7 @@ package org.dominokit.domino.ui.style;
 
 import elemental2.dom.HTMLHeadingElement;
 import org.jboss.elemento.Elements;
-import org.jboss.elemento.HTMLContainerBuilder;
+import org.jboss.elemento.HtmlContentBuilder;
 
 public class Styles {
 
@@ -436,6 +436,6 @@ public class Styles {
   public static final String b_r_0 = "b-r-0";
   public static final String b_0 = "b-0";
 
-  HTMLContainerBuilder<HTMLHeadingElement> header =
+  HtmlContentBuilder<HTMLHeadingElement> header =
       Elements.h(1).style("text-align: left;").textContent("Example heading ");
 }

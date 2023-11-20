@@ -139,7 +139,7 @@ public class Tooltip extends BaseDominoElement<HTMLDivElement, Tooltip> {
    * @param text the text content
    * @return new instance
    */
-  public static Tooltip create(IsElement<? extends HTMLElement> element, String text) {
+  public static Tooltip create(IsElement<?> element, String text) {
     return new Tooltip(element.element(), text);
   }
 
@@ -150,7 +150,7 @@ public class Tooltip extends BaseDominoElement<HTMLDivElement, Tooltip> {
    * @param content the {@link Node} content
    * @return new instance
    */
-  public static Tooltip create(IsElement<? extends HTMLElement> element, Node content) {
+  public static Tooltip create(IsElement<?> element, Node content) {
     return new Tooltip(element.element(), content);
   }
 

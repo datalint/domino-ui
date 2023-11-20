@@ -240,7 +240,7 @@ public class Chip extends BaseDominoElement<HTMLDivElement, Chip>
    * @param removeIcon the new remove icon {@link IsElement} to set
    * @return same instance
    */
-  public Chip setRemoveIcon(IsElement<? extends HTMLElement> removeIcon) {
+  public Chip setRemoveIcon(IsElement<?> removeIcon) {
     return setRemoveIcon(removeIcon.element());
   }
 

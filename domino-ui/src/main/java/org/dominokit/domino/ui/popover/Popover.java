@@ -205,8 +205,7 @@ public class Popover extends BaseDominoElement<HTMLDivElement, Popover>
    * @param content the {@link IsElement} content
    * @return new instance
    */
-  public static Popover createPicker(
-      IsElement<? extends HTMLElement> target, IsElement<?> content) {
+  public static Popover createPicker(IsElement<?> target, IsElement<?> content) {
     Popover popover = new Popover(target.element(), "", content.element());
     popover.getHeadingElement().setDisplay("none");
     popover.getContentElement().setCssProperty("padding", "0px");
@@ -246,8 +245,7 @@ public class Popover extends BaseDominoElement<HTMLDivElement, Popover>
    * @param content the content {@link Node}
    * @return new instance
    */
-  public static Popover create(
-      IsElement<? extends HTMLElement> target, String title, Node content) {
+  public static Popover create(IsElement<?> target, String title, Node content) {
     return new Popover(target.element(), title, content);
   }
 
@@ -259,8 +257,7 @@ public class Popover extends BaseDominoElement<HTMLDivElement, Popover>
    * @param content the content {@link IsElement}
    * @return new instance
    */
-  public static Popover create(
-      IsElement<? extends HTMLElement> target, String title, IsElement<?> content) {
+  public static Popover create(IsElement<?> target, String title, IsElement<?> content) {
     return new Popover(target.element(), title, content.element());
   }
 

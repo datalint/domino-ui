@@ -24,7 +24,7 @@ import elemental2.dom.HTMLUListElement;
 import org.dominokit.domino.ui.utils.BaseDominoElement;
 import org.dominokit.domino.ui.utils.DominoElement;
 import org.jboss.elemento.EventType;
-import org.jboss.elemento.HTMLContainerBuilder;
+import org.jboss.elemento.HtmlContentBuilder;
 
 /**
  * A component which provides a simple navigation between a list of elements using next/previous
@@ -58,7 +58,7 @@ public class Pager extends BaseDominoElement<HTMLElement, Pager> {
   private boolean allowPrev = true;
 
   public Pager() {
-    HTMLContainerBuilder<HTMLAnchorElement> nextAnchor = a();
+    HtmlContentBuilder<HTMLAnchorElement> nextAnchor = a();
     this.nextAnchor = DominoElement.of(nextAnchor);
     nextElement =
         DominoElement.of(
@@ -73,7 +73,7 @@ public class Pager extends BaseDominoElement<HTMLElement, Pager> {
                         .textContent("Next")
                         .element()));
 
-    HTMLContainerBuilder<HTMLAnchorElement> prevAnchor = a();
+    HtmlContentBuilder<HTMLAnchorElement> prevAnchor = a();
     this.prevAnchor = DominoElement.of(prevAnchor);
     prevElement =
         DominoElement.of(

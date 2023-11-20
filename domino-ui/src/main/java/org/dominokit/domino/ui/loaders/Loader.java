@@ -66,7 +66,7 @@ public class Loader {
    * @param effect the {@link LoaderEffect}
    * @return new instance
    */
-  public static Loader create(IsElement<? extends HTMLElement> target, LoaderEffect effect) {
+  public static Loader create(IsElement<?> target, LoaderEffect effect) {
     return new Loader(target.element(), effect);
   }
 

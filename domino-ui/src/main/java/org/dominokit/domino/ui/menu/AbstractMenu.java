@@ -316,7 +316,7 @@ public abstract class AbstractMenu<V, T extends AbstractMenu<V, T>>
    * @param element {@link IsElement}
    * @return same menu instance
    */
-  public T appendAction(IsElement<? extends HTMLElement> element) {
+  public T appendAction(IsElement<?> element) {
     menuHeader.appendAction(element);
     setHeaderVisible(true);
     return (T) this;
@@ -913,7 +913,7 @@ public abstract class AbstractMenu<V, T extends AbstractMenu<V, T>>
    *     positioning of the menu will be based on.
    * @return same menu instance
    */
-  public T setTargetElement(IsElement<? extends HTMLElement> targetElement) {
+  public T setTargetElement(IsElement<?> targetElement) {
     return (T) setTargetElement(targetElement.element());
   }
 
@@ -932,7 +932,7 @@ public abstract class AbstractMenu<V, T extends AbstractMenu<V, T>>
    *     positioning of the menu will be based on.
    * @return same menu instance
    */
-  public T setTargetElement(IsElement<? extends HTMLElement> targetElement, ComponentMeta meta) {
+  public T setTargetElement(IsElement<?> targetElement, ComponentMeta meta) {
     return (T) setTargetElement(targetElement.element(), meta);
   }
 
@@ -951,7 +951,7 @@ public abstract class AbstractMenu<V, T extends AbstractMenu<V, T>>
    *     positioning of the menu will be based on.
    * @return same menu instance
    */
-  public T addTargetElement(IsElement<? extends HTMLElement> targetElement) {
+  public T addTargetElement(IsElement<?> targetElement) {
     return (T) addTargetElement(targetElement.element());
   }
 
@@ -970,7 +970,7 @@ public abstract class AbstractMenu<V, T extends AbstractMenu<V, T>>
    *     positioning of the menu will be based on.
    * @return same menu instance
    */
-  public T addTargetElement(IsElement<? extends HTMLElement> targetElement, ComponentMeta meta) {
+  public T addTargetElement(IsElement<?> targetElement, ComponentMeta meta) {
     return (T) addTargetElement(targetElement.element(), meta);
   }
 
