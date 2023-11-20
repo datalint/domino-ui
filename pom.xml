@@ -71,6 +71,7 @@
         <next.release.version>1.0.5</next.release.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
 
         <maven.compiler.plugin>3.8.1</maven.compiler.plugin>
         <maven.source.plugin>3.0.1</maven.source.plugin>
