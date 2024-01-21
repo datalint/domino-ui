@@ -15,6 +15,8 @@
  */
 package org.dominokit.domino.ui.richtext.commands;
 
+import static org.dominokit.domino.ui.utils.Domino.*;
+
 import elemental2.dom.HTMLElement;
 import org.dominokit.domino.ui.elements.DivElement;
 import org.dominokit.domino.ui.richtext.BackgroundColorPicker;
@@ -22,14 +24,40 @@ import org.dominokit.domino.ui.richtext.ColorPickerButton;
 import org.dominokit.domino.ui.richtext.RichTextCommand;
 import org.dominokit.domino.ui.utils.DominoDom;
 
+/**
+ * A UI component for applying a background color command to a selected range within a rich text
+ * editor.
+ *
+ * <p>The BackColorCommand extends {@link RichTextCommand} to provide the capability to change the
+ * background color of the selected text in a rich text editable element. It incorporates a {@link
+ * BackgroundColorPicker} to allow users to choose a desired background color.
+ *
+ * <p><b>Usage Example:</b>
+ *
+ * <pre>{@code
+ * DivElement editableDiv = DivElement.create();
+ * BackColorCommand backColorCommand = BackColorCommand.create(editableDiv);
+ * }</pre>
+ */
 public class BackColorCommand extends RichTextCommand<BackColorCommand> {
 
   private ColorPickerButton backgroundColorPicker;
 
+  /**
+   * Factory method to create a new instance of BackColorCommand.
+   *
+   * @param editableElement The div element where the rich text is edited.
+   * @return A new instance of BackColorCommand.
+   */
   public static BackColorCommand create(DivElement editableElement) {
     return new BackColorCommand(editableElement);
   }
 
+  /**
+   * Constructs a new BackColorCommand instance for the specified editable element.
+   *
+   * @param editableElement The div element where the rich text is edited.
+   */
   public BackColorCommand(DivElement editableElement) {
     super(editableElement);
     this.backgroundColorPicker =
@@ -41,11 +69,20 @@ public class BackColorCommand extends RichTextCommand<BackColorCommand> {
     init(this);
   }
 
+  /**
+   * @dominokit-site-ignore {@inheritDoc}
+   *     <p>Returns the main HTMLElement of this command, which is the background color picker.
+   * @return The HTMLElement of the background color picker.
+   */
   @Override
   public HTMLElement element() {
     return backgroundColorPicker.element();
   }
 
+  /**
+   * Executes the command, applying the selected background color to the currently selected text
+   * within the editable div element.
+   */
   @Override
   protected void execute() {
     getSelectedRange()

@@ -16,11 +16,10 @@
 package org.dominokit.domino.ui.button;
 
 import static java.util.Objects.nonNull;
-import static org.dominokit.domino.ui.button.ButtonStyles.dui_button;
-import static org.dominokit.domino.ui.button.ButtonStyles.dui_button_body;
-import static org.dominokit.domino.ui.button.ButtonStyles.dui_button_icon;
-import static org.dominokit.domino.ui.button.ButtonStyles.dui_button_reversed;
-import static org.dominokit.domino.ui.button.ButtonStyles.dui_button_text;
+import static org.dominokit.domino.ui.button.ButtonStyles.*;
+import static org.dominokit.domino.ui.utils.Domino.*;
+import static org.dominokit.domino.ui.utils.Domino.div;
+import static org.dominokit.domino.ui.utils.Domino.span;
 
 import elemental2.dom.Element;
 import elemental2.dom.Event;
@@ -106,23 +105,26 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
     setIcon(icon);
   }
 
-  /** {@inheritDoc} */
+  /** @hidden {@inheritDoc} */
   @Override
   public Element getAppendTarget() {
     return bodyElement.element();
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Update the button text
+   *
+   * @return an instance of B implementation extending from BaseButton
+   */
   @Override
   public B setTextContent(String text) {
     return setText(text);
   }
 
   /**
-   * setText.
+   * Update the button text
    *
-   * @param text a {@link java.lang.String} object
-   * @return a B object
+   * @return an instance of B implementation extending from BaseButton
    */
   public B setText(String text) {
     textElement.get().setTextContent(text);
@@ -132,8 +134,8 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   /**
    * {@inheritDoc}
    *
-   * <p>return the clickable {@link HTMLElement} of this component, which the component button
-   * element.
+   * @return the element that will receive click events when click listeners ar added to this
+   *     component
    */
   @Override
   public HTMLElement getClickableElement() {
@@ -141,10 +143,9 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   }
 
   /**
-   * changes the button to a circle button by applying {@link
-   * org.dominokit.domino.ui.button.ButtonStyles#dui_circle}
+   * changes the button to a circle button by applying <code>dui_circle</code> css style
    *
-   * @return same instance
+   * @return same Button instance.
    */
   public B circle() {
     buttonElement.addCss(ButtonStyles.dui_circle);
@@ -168,19 +169,22 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   }
 
   /**
-   * Getter for the field <code>textElement</code>.
+   * This will automatically initialize the button text element and append to the button if it was
+   * not initialized yet.
    *
-   * @return a {@link org.dominokit.domino.ui.elements.SpanElement} object
+   * @return a {@link org.dominokit.domino.ui.elements.SpanElement} that holds the button text.
    */
   public SpanElement getTextElement() {
     return textElement.get();
   }
 
   /**
-   * withTextElement.
+   * Use this to apply customizations to the button text element without breaking the fluent API
+   * chain this will initialize the text element and append it to the button if it was not yet
+   * initialized.
    *
-   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} object
-   * @return a B object
+   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} to apply the customization
+   * @return same button instance
    */
   public B withTextElement(ChildHandler<B, SpanElement> handler) {
     handler.apply((B) this, textElement.get());
@@ -188,9 +192,10 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   }
 
   /**
-   * withTextElement.
+   * This will initialize the text element and append it to the button if it was not yet
+   * initialized.
    *
-   * @return a B object
+   * @return same button instance
    */
   public B withTextElement() {
     textElement.get();
@@ -198,10 +203,12 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   }
 
   /**
-   * withIconElement.
+   * Use this to apply customizations to the button icon element without breaking the fluent API
+   * chain this will initialize the icon element and append it to the button if it was not yet
+   * initialized.
    *
-   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} object
-   * @return a B object
+   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} to apply the customization
+   * @return same button instance
    */
   public B withIconElement(ChildHandler<B, Icon<?>> handler) {
     if (nonNull(iconElement)) {
@@ -211,9 +218,10 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
   }
 
   /**
-   * withIconElement.
+   * This will initialize the icon element and append it to the button if it was not yet
+   * initialized.
    *
-   * @return a B object
+   * @return same button instance
    */
   public B withIconElement() {
     if (nonNull(iconElement)) {
@@ -222,29 +230,37 @@ public abstract class BaseButton<E extends HTMLElement, B extends BaseButton<E, 
     return (B) this;
   }
 
+  /**
+   * Use this to apply customizations to the button body element without breaking the fluent API
+   * chain
+   *
+   * @param handler a {@link org.dominokit.domino.ui.utils.ChildHandler} to apply the customization
+   * @return same button instance
+   */
   public B withBodyElement(ChildHandler<B, DivElement> handler) {
     handler.apply((B) this, bodyElement);
     return (B) this;
   }
 
   /**
-   * setReversed.
+   * Reverse the order of the button icon and text
    *
-   * @param reversed a boolean
-   * @return a B object
+   * @param reversed <b>true</b> to order text to the left and icon to the right, <b>false</b> icon
+   *     to the right and text to the left
+   * @return same button instance
    */
   public B setReversed(boolean reversed) {
     addCss(BooleanCssClass.of(dui_button_reversed, reversed));
     return (B) this;
   }
 
-  /** {@inheritDoc} */
+  /** @dominokit-site-ignore {@inheritDoc} */
   @Override
   public HTMLElement element() {
     return buttonElement.element();
   }
 
-  /** {@inheritDoc} */
+  /** @dominokit-site-ignore {@inheritDoc} */
   @Override
   public B asButton() {
     return (B) this;

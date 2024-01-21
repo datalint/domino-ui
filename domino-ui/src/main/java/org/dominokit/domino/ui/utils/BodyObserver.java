@@ -18,6 +18,7 @@ package org.dominokit.domino.ui.utils;
 import static elemental2.dom.DomGlobal.document;
 import static org.dominokit.domino.ui.utils.BaseDominoElement.ATTACH_UID_KEY;
 import static org.dominokit.domino.ui.utils.BaseDominoElement.DETACH_UID_KEY;
+import static org.dominokit.domino.ui.utils.Domino.*;
 import static org.dominokit.domino.ui.utils.ElementsFactory.elements;
 
 import elemental2.core.JsArray;
@@ -33,14 +34,9 @@ import java.util.List;
 import jsinterop.base.Js;
 
 /**
- * This class allows us to listen to the elements attach/detach life cycle
- *
- * <p>the class will register a {@link MutationObserver} on the document body element only and uses
- * query selectors to get attached/detached elements from the dom
- *
- * <p>When we register an attach/detach listener on an element we assign it a special id attribute
- * <b>on-attach-uid</b>/<b>on-detach-uid</b> to help locating elements from the {@link
- * MutationRecord}s
+ * The {@code BodyObserver} class is responsible for observing mutations in the document's body. It
+ * tracks the addition and removal of elements with specific attributes and dispatches events
+ * accordingly.
  */
 final class BodyObserver {
 
@@ -50,6 +46,11 @@ final class BodyObserver {
 
   private BodyObserver() {}
 
+  /**
+   * Pauses the observer for a specified action and resumes it afterward.
+   *
+   * @param handler The action to perform while the observer is paused.
+   */
   static void pauseFor(Runnable handler) {
     mutationObserver.disconnect();
     try {
@@ -59,6 +60,7 @@ final class BodyObserver {
     }
   }
 
+  /** Starts observing mutations in the document's body. */
   static void startObserving() {
     if (!ready) {
       mutationObserver =

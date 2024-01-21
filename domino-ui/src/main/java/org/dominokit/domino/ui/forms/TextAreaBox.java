@@ -17,6 +17,7 @@ package org.dominokit.domino.ui.forms;
 
 import static java.util.Objects.nonNull;
 import static org.dominokit.domino.ui.forms.FormsStyles.*;
+import static org.dominokit.domino.ui.utils.Domino.*;
 
 import elemental2.dom.EventListener;
 import elemental2.dom.HTMLTextAreaElement;
@@ -24,12 +25,31 @@ import org.dominokit.domino.ui.elements.DivElement;
 import org.dominokit.domino.ui.elements.SpanElement;
 import org.dominokit.domino.ui.utils.DominoElement;
 import org.dominokit.domino.ui.utils.FillerElement;
+import org.dominokit.domino.ui.utils.IntersectionObserver;
+import org.dominokit.domino.ui.utils.IntersectionObserverEntry;
+import org.dominokit.domino.ui.utils.IntersectionObserverOptions;
 import org.dominokit.domino.ui.utils.LazyChild;
 import org.dominokit.domino.ui.utils.PostfixAddOn;
 import org.dominokit.domino.ui.utils.PrefixAddOn;
 import org.dominokit.domino.ui.utils.PrimaryAddOn;
 
-/** TextAreaBox class. */
+/**
+ * The TextAreaBox class is a form field component for text areas, providing features such as prefix
+ * and postfix elements, auto-sizing, and value adjustments.
+ *
+ * <p>Usage Example:
+ *
+ * <pre>
+ * // Create a TextAreaBox with auto-sizing
+ * TextAreaBox textArea = TextAreaBox.create().autoSize().setRows(4);
+ *
+ * // Create a TextAreaBox with a label
+ * TextAreaBox labeledTextArea = TextAreaBox.create("Comments");
+ * </pre>
+ *
+ * @see CountableInputFormField
+ * @see InputFormField
+ */
 public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAreaElement, String> {
 
   private EventListener autosizeListener = evt -> adjustHeight();
@@ -38,43 +58,48 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
 
   private DivElement header;
   private LazyChild<FillerElement> headerFiller;
+  private IntersectionObserver intersectionObserver;
 
   /**
-   * create.
+   * Factory method to create a new instance of {@link TextAreaBox}.
    *
-   * @return a {@link org.dominokit.domino.ui.forms.TextAreaBox} object
+   * @return a new instance of TextAreaBox
    */
   public static TextAreaBox create() {
     return new TextAreaBox();
   }
 
   /**
-   * create.
+   * Factory method to create a new instance of {@link TextAreaBox} with a label.
    *
-   * @param label a {@link java.lang.String} object
-   * @return a {@link org.dominokit.domino.ui.forms.TextAreaBox} object
+   * @param label the label for the text area
+   * @return a new instance of TextAreaBox with the provided label
    */
   public static TextAreaBox create(String label) {
     return new TextAreaBox(label);
   }
 
-  /** Constructor for TextAreaBox. */
+  /** Creates a new TextAreaBox instance with default values. */
   public TextAreaBox() {
     setRows(4);
     addCss(dui_form_text_area);
-    wrapperElement.appendChild(
-        header =
-            div()
-                .addCss(
-                    dui_form_text_area_header,
-                    dui_hide_empty,
-                    dui_flex,
-                    dui_items_center,
-                    dui_order_first));
+    wrapperElement
+        .appendChild(
+            header =
+                div()
+                    .addCss(
+                        dui_form_text_area_header,
+                        dui_hide_empty,
+                        dui_flex,
+                        dui_items_center,
+                        dui_order_first))
+        .addCss(dui_h_inherit);
+    bodyElement.addCss(dui_h_inherit);
+
     headerFiller = LazyChild.of(FillerElement.create().addCss(dui_order_30), header);
     onAttached(mutationRecord -> adjustHeight());
     setDefaultValue("");
-    getInputElement().setAttribute("data-scroll", "0");
+    getInputElement().addCss(dui_h_inherit).setAttribute("data-scroll", "0");
     getInputElement()
         .addEventListener(
             "scroll",
@@ -82,30 +107,67 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
                 getInputElement()
                     .element()
                     .setAttribute("data-scroll", getInputElement().element().scrollTop));
+
+    intersectionObserver =
+        new IntersectionObserver(
+            entries -> {
+              IntersectionObserverEntry entry = entries.asList().get(0);
+              if (entry.getIsIntersecting()) {
+                adjustHeight();
+                intersectionObserver.unobserve(this.element());
+                intersectionObserver.disconnect();
+              }
+            },
+            IntersectionObserverOptions.create());
+    intersectionObserver.observe(this.element());
   }
 
-  /** {@inheritDoc} */
   @Override
   protected LazyChild<SpanElement> initCounterElement() {
     headerFiller.get();
     return counterElement = LazyChild.of(span().addCss(du_field_counter), header);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Creates a new TextAreaBox instance with the specified label.
+   *
+   * @param label The label text for the TextAreaBox.
+   */
+  public TextAreaBox(String label) {
+    this();
+    setLabel(label);
+  }
+
+  /**
+   * Appends a prefix add-on element to the header of this TextAreaBox.
+   *
+   * @param addon The prefix add-on to append.
+   * @return This TextAreaBox instance.
+   */
   @Override
   public TextAreaBox appendChild(PrefixAddOn<?> addon) {
     header.appendChild(addon);
     return this;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Appends a primary add-on element to the header of this TextAreaBox.
+   *
+   * @param addon The primary add-on to append.
+   * @return This TextAreaBox instance.
+   */
   @Override
   public TextAreaBox appendChild(PrimaryAddOn<?> addon) {
     header.appendChild(addon);
     return this;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Appends a postfix add-on element to the header of this TextAreaBox.
+   *
+   * @param addon The postfix add-on to append.
+   * @return This TextAreaBox` instance.
+   */
   @Override
   public TextAreaBox appendChild(PostfixAddOn<?> addon) {
     headerFiller.get();
@@ -114,20 +176,10 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
   }
 
   /**
-   * Constructor for TextAreaBox.
+   * Sets the number of rows for the text area.
    *
-   * @param label a {@link java.lang.String} object
-   */
-  public TextAreaBox(String label) {
-    this();
-    setLabel(label);
-  }
-
-  /**
-   * Setter for the field <code>rows</code>.
-   *
-   * @param rows a int
-   * @return a {@link org.dominokit.domino.ui.forms.TextAreaBox} object
+   * @param rows The number of rows to set.
+   * @return This `TextAreaBox` instance.
    */
   public TextAreaBox setRows(int rows) {
     this.rows = rows;
@@ -139,13 +191,16 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
     getInputElement().setAttribute("rows", rows + "");
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Gets the string value of this TextAreaBox, which is equivalent to its current value.
+   *
+   * @return The string value of this TextAreaBox.
+   */
   @Override
   public String getStringValue() {
     return getValue();
   }
 
-  /** {@inheritDoc} */
   @Override
   protected DominoElement<HTMLTextAreaElement> createInputElement(String type) {
     return textarea()
@@ -154,24 +209,27 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
         .toDominoElement();
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Sets the value of the text area.
+   *
+   * @param value The value to set.
+   */
   @Override
   protected void doSetValue(String value) {
     if (nonNull(value)) {
       getInputElement().element().value = value;
-      if (isAttached()) {
-        adjustHeight();
-      }
     } else {
       getInputElement().element().value = "";
     }
+    nowOrWhenAttached(this::adjustHeight);
+    updateCounter(getLength(), getMaxCount());
   }
 
   /**
-   * The TextArea will start with initial number of rows and will automatically grow if more lines
-   * are added instead of showing scrollbars
+   * Enables auto-sizing for the text area, allowing it to adjust its height automatically as the
+   * content grows.
    *
-   * @return a {@link org.dominokit.domino.ui.forms.TextAreaBox} object
+   * @return This `TextAreaBox` instance.
    */
   public TextAreaBox autoSize() {
     getInputElement().addEventListener("input", autosizeListener);
@@ -182,10 +240,9 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
   }
 
   /**
-   * The TextArea will show scrollbars when the text rows exceeds the rows from {@link
-   * #setRows(int)}
+   * Disables auto-sizing for the text area, fixing its height to the specified number of rows.
    *
-   * @return same TextArea instance
+   * @return This `TextAreaBox` instance.
    */
   public TextAreaBox fixedSize() {
     getInputElement().removeEventListener("input", autosizeListener);
@@ -195,24 +252,26 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
     return this;
   }
 
+  /** Adjusts the height of the text area based on its content. */
   private void adjustHeight() {
-    getInputElement().style().setHeight("auto");
-    int scrollHeight = getInputElement().element().scrollHeight;
-    if (scrollHeight < 30) {
-      scrollHeight = 28;
-    }
+
     if (autoSize) {
-      getInputElement().style().setHeight(scrollHeight + "px");
+      getInputElement().style().setHeight("auto");
+      int scrollHeight = getInputElement().element().scrollHeight;
+      getInputElement().style().setHeight(Math.max(scrollHeight, 28) + "px");
     }
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Gets the type of the text area field.
+   *
+   * @return The type, which is always "text".
+   */
   @Override
   public String getType() {
     return "text";
   }
 
-  /** {@inheritDoc} */
   @Override
   public String getValue() {
     String value = getInputElement().element().value;
@@ -222,13 +281,22 @@ public class TextAreaBox extends CountableInputFormField<TextAreaBox, HTMLTextAr
     return value;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Gets the name attribute of the text area.
+   *
+   * @return The name attribute value.
+   */
   @Override
   public String getName() {
     return getInputElement().element().name;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Sets the name attribute for the text area.
+   *
+   * @param name The name attribute value to set.
+   * @return This `TextAreaBox` instance.
+   */
   @Override
   public TextAreaBox setName(String name) {
     getInputElement().element().name = name;

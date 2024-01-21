@@ -15,6 +15,8 @@
  */
 package org.dominokit.domino.ui.datepicker;
 
+import static org.dominokit.domino.ui.utils.Domino.*;
+
 import elemental2.dom.HTMLDivElement;
 import org.dominokit.domino.ui.elements.DivElement;
 import org.dominokit.domino.ui.elements.SpanElement;
@@ -22,7 +24,17 @@ import org.dominokit.domino.ui.menu.direction.DropDirection;
 import org.dominokit.domino.ui.utils.BaseDominoElement;
 import org.gwtproject.i18n.shared.cldr.DateTimeFormatInfo;
 
-/** WeekDayHeader class. */
+/**
+ * Represents the header for each weekday in a calendar.
+ *
+ * <p><b>Usage Example:</b>
+ *
+ * <pre>
+ * WeekDayHeader mondayHeader = WeekDayHeader.create(calendarInstance, 1);
+ * </pre>
+ *
+ * @see BaseDominoElement
+ */
 public class WeekDayHeader extends BaseDominoElement<HTMLDivElement, WeekDayHeader>
     implements CalendarStyles, CalendarViewListener {
 
@@ -32,10 +44,10 @@ public class WeekDayHeader extends BaseDominoElement<HTMLDivElement, WeekDayHead
   private final SpanElement dayElement;
 
   /**
-   * Constructor for WeekDayHeader.
+   * Creates a new weekday header for the specified calendar and day index.
    *
-   * @param calendar a {@link org.dominokit.domino.ui.datepicker.IsCalendar} object
-   * @param dayIndex a int
+   * @param calendar The {@link IsCalendar} instance that this header is associated with.
+   * @param dayIndex The index of the day this header represents.
    */
   public WeekDayHeader(IsCalendar calendar, int dayIndex) {
     this.calendar = calendar;
@@ -55,24 +67,32 @@ public class WeekDayHeader extends BaseDominoElement<HTMLDivElement, WeekDayHead
   }
 
   /**
-   * create.
+   * Factory method to create a new weekday header.
    *
-   * @param calendar a {@link org.dominokit.domino.ui.datepicker.IsCalendar} object
-   * @param dayIndex a int
-   * @return a {@link org.dominokit.domino.ui.datepicker.WeekDayHeader} object
+   * @param calendar The {@link IsCalendar} instance to associate with the header.
+   * @param dayIndex The index of the day the header represents.
+   * @return a new instance of {@link WeekDayHeader}.
    */
   public static WeekDayHeader create(IsCalendar calendar, int dayIndex) {
     return new WeekDayHeader(calendar, dayIndex);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Callback method executed when the DateTimeFormatInfo of the associated calendar changes.
+   *
+   * @param dateTimeFormatInfo The updated DateTimeFormatInfo instance.
+   */
   @Override
   public void onDateTimeFormatInfoChanged(DateTimeFormatInfo dateTimeFormatInfo) {
     dayElement.textContent(dateTimeFormatInfo.weekdaysShort()[dayIndex]);
     root.setTooltip(dateTimeFormatInfo.weekdaysFull()[dayIndex], DropDirection.TOP_MIDDLE);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * Returns the root {@link HTMLDivElement} of this weekday header.
+   *
+   * @return the root {@link HTMLDivElement}.
+   */
   @Override
   public HTMLDivElement element() {
     return root.element();

@@ -17,6 +17,7 @@ package org.dominokit.domino.ui.menu.direction;
 
 import static elemental2.dom.DomGlobal.window;
 import static org.dominokit.domino.ui.style.SpacingCss.dui_flex_col_reverse;
+import static org.dominokit.domino.ui.utils.Domino.*;
 import static org.dominokit.domino.ui.utils.ElementsFactory.elements;
 import static org.dominokit.domino.ui.utils.Unit.px;
 
@@ -42,9 +43,14 @@ public class TopRightDropDirection implements DropDirection {
     Style.of(source)
         .style
         .setProperty("top", px.of((targetRect.top + window.pageYOffset) - sourceRect.height - 1));
-    Style.of(source).style.setProperty("left", px.of(targetRect.left + window.pageXOffset - delta));
+
+    Style.of(source).style.setProperty("left", px.of(targetRect.left));
+
     dui_dd_top_right.apply(source);
     elements.elementOf(source).setCssProperty("--dui-menu-drop-min-width", targetRect.width + "px");
+    DOMRect newRect = source.getBoundingClientRect();
+    double left = (targetRect.left - (newRect.left - targetRect.left)) + window.pageXOffset - delta;
+    Style.of(source).style.setProperty("left", px.of(Math.max(left, 0)));
   }
 
   /** {@inheritDoc} */

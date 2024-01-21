@@ -18,20 +18,23 @@ package org.dominokit.domino.ui.tree;
 import java.util.function.BiPredicate;
 
 /**
- * An interface for filtering the tree item based on a search token
+ * A functional interface for filtering tree items based on a search token.
  *
- * @param <T> the type of the value
+ * @param <T> The type of tree item to filter.
  * @deprecated use {@link BiPredicate} instead
  */
 @FunctionalInterface
 @Deprecated
 public interface TreeItemFilter<T> {
+
   /**
-   * filter.
+   * Tests whether a given tree item should be included in the filtered results based on a search
+   * token.
    *
-   * @param treeItem the tree item to filter
-   * @param searchToken the search token
-   * @return true if the item should be shown, false otherwise
+   * @param treeItem The tree item to be tested.
+   * @param searchToken The search token used for filtering.
+   * @return {@code true} if the tree item should be included in the filtered results, {@code false}
+   *     otherwise.
    */
   boolean filter(T treeItem, String searchToken);
 }

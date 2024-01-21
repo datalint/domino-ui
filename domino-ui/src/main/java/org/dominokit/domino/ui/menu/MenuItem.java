@@ -17,16 +17,21 @@ package org.dominokit.domino.ui.menu;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.dominokit.domino.ui.utils.Domino.*;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.dominokit.domino.ui.elements.AnchorElement;
 import org.dominokit.domino.ui.elements.SmallElement;
 import org.dominokit.domino.ui.elements.SpanElement;
+import org.dominokit.domino.ui.utils.ChildHandler;
 
 /**
- * An implementation og the {@link org.dominokit.domino.ui.menu.AbstractMenuItem} for a menu item
- * that can have a main text and a description {@inheritDoc}
+ * Represents a menu item that can be added to a menu. Each menu item can have a text and an
+ * optional description.
+ *
+ * @param <V> the type of value associated with this menu item
  */
 public class MenuItem<V> extends AbstractMenuItem<V> {
 
@@ -34,45 +39,56 @@ public class MenuItem<V> extends AbstractMenuItem<V> {
   private SpanElement textElement;
 
   /**
-   * create.
+   * Creates a menu item with the specified text.
    *
-   * @param text a {@link java.lang.String} object
-   * @param <V> a V class
-   * @return a {@link org.dominokit.domino.ui.menu.MenuItem} object
+   * @param text the text for the menu item
+   * @return the created menu item
    */
   public static <V> MenuItem<V> create(String text) {
     return new MenuItem<>(text);
   }
 
   /**
-   * create.
+   * Creates a menu item with the specified text and description.
    *
-   * @param text a {@link java.lang.String} object
-   * @param description a {@link java.lang.String} object
-   * @param <V> a V class
-   * @return a {@link org.dominokit.domino.ui.menu.MenuItem} object
+   * @param text the text for the menu item
+   * @param description the description for the menu item
+   * @return the created menu item
    */
   public static <V> MenuItem<V> create(String text, String description) {
     return new MenuItem<>(text, description);
   }
 
   /**
-   * Constructor for MenuItem.
+   * Constructs a menu item with the specified text.
    *
-   * @param text a {@link java.lang.String} object
+   * @param text the text for the menu item
    */
   public MenuItem(String text) {
     if (nonNull(text) && !text.isEmpty()) {
       textElement = span().addCss(dui_menu_item_content).setTextContent(text);
       appendChild(textElement);
     }
+
+    this.searchFilter = this::containsToken;
   }
 
   /**
-   * Constructor for MenuItem.
+   * Applies a custom child handler to the link element of this menu item
    *
-   * @param text a {@link java.lang.String} object
-   * @param description a {@link java.lang.String} object
+   * @param handler The child handler to apply.
+   * @return This menu item instance.
+   */
+  public MenuItem<V> withClickableElement(ChildHandler<MenuItem<V>, AnchorElement> handler) {
+    handler.apply(this, linkElement);
+    return this;
+  }
+
+  /**
+   * Constructs a menu item with the specified text and description.
+   *
+   * @param text the text for the menu item
+   * @param description the description for the menu item
    */
   public MenuItem(String text, String description) {
     this(text);
@@ -83,38 +99,56 @@ public class MenuItem<V> extends AbstractMenuItem<V> {
     }
   }
 
-  /** @return The description element */
+  @Override
+  public boolean startsWith(String character) {
+    String textContent =
+        Arrays.asList(Optional.ofNullable(textElement), Optional.ofNullable(descriptionElement))
+            .stream()
+            .filter(Optional::isPresent)
+            .map(element -> element.get().getTextContent())
+            .collect(Collectors.joining(" "));
+    if (isNull(textContent) || textContent.isEmpty()) {
+      return false;
+    }
+    return textContent.toLowerCase().startsWith(character.toLowerCase());
+  }
+
   /**
-   * Getter for the field <code>descriptionElement</code>.
+   * Retrieves the description element of the menu item.
    *
-   * @return a {@link org.dominokit.domino.ui.elements.SmallElement} object
+   * @return the description element
    */
   public SmallElement getDescriptionElement() {
     return descriptionElement;
   }
 
-  /** @return the main text element */
   /**
-   * Getter for the field <code>textElement</code>.
+   * Retrieves the text element of the menu item.
    *
-   * @return a {@link org.dominokit.domino.ui.elements.SpanElement} object
+   * @return the text element
    */
   public SpanElement getTextElement() {
     return textElement;
   }
 
   /**
-   * {@inheritDoc}
+   * Searches for a given token in the text and description of the menu item.
    *
-   * <p>match the search token with both the text and description of the menu item
+   * @param token the search token
+   * @param caseSensitive indicates if the search should be case-sensitive
+   * @return true if the menu item contains the token, false otherwise
    */
   @Override
   public boolean onSearch(String token, boolean caseSensitive) {
+    return onSearch(token, caseSensitive, getSearchFilter());
+  }
+
+  private boolean onSearch(String token, boolean caseSensitive, MenuSearchFilter searchFilter) {
     if (isNull(token) || token.isEmpty()) {
       this.show();
       return true;
     }
-    if (searchable && containsToken(token, caseSensitive)) {
+    if (searchable && searchFilter.onSearch(token, caseSensitive)) {
       if (this.isHidden()) {
         this.show();
       }
@@ -126,6 +160,13 @@ public class MenuItem<V> extends AbstractMenuItem<V> {
     return false;
   }
 
+  /**
+   * Determines if the menu item's text or description contains the specified token.
+   *
+   * @param token the search token
+   * @param caseSensitive indicates if the search should be case-sensitive
+   * @return true if the menu item contains the token, false otherwise
+   */
   private boolean containsToken(String token, boolean caseSensitive) {
     String textContent =
         Arrays.asList(Optional.ofNullable(textElement), Optional.ofNullable(descriptionElement))

@@ -15,6 +15,9 @@
  */
 package org.dominokit.domino.ui.keyboard;
 
+import static java.util.Objects.nonNull;
+
+import elemental2.core.JsRegExp;
 import elemental2.dom.Event;
 import elemental2.dom.EventListener;
 import elemental2.dom.KeyboardEvent;
@@ -22,32 +25,54 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import jsinterop.base.Js;
 import org.dominokit.domino.ui.events.HasDefaultEventOptions;
 
-/** KeyboardKeyListener class. */
+/**
+ * The {@code KeyboardKeyListener} class is an event listener for keyboard events that implements
+ * the {@link EventListener} and {@link AcceptKeyEvents} interfaces. It allows you to define event
+ * handlers for specific key events such as keydown, keyup, and keypress, including common keyboard
+ * keys like escape, arrow keys, enter, delete, space, tab, and backspace.
+ *
+ * <p>You can register and manage event handlers for specific keys and globally for all keyboard
+ * events. Additionally, it supports default event options provided by the {@link
+ * HasDefaultEventOptions} interface.
+ *
+ * @see AcceptKeyEvents
+ * @see HasDefaultEventOptions
+ */
 public class KeyboardKeyListener implements EventListener, AcceptKeyEvents {
 
-  /** Constant <code>ESCAPE="escape"</code> */
+  /** The constant representing the "escape" key. */
   public static final String ESCAPE = "escape";
-  /** Constant <code>ARROWDOWN="arrowdown"</code> */
+
+  /** The constant representing the "arrowdown" key. */
   public static final String ARROWDOWN = "arrowdown";
-  /** Constant <code>ARROWUP="arrowup"</code> */
+
+  /** The constant representing the "arrowup" key. */
   public static final String ARROWUP = "arrowup";
-  /** Constant <code>ARROWRIGHT="arrowright"</code> */
+
+  /** The constant representing the "arrowright" key. */
   public static final String ARROWRIGHT = "arrowright";
-  /** Constant <code>ARROWLEFT="arrowleft"</code> */
+
+  /** The constant representing the "arrowleft" key. */
   public static final String ARROWLEFT = "arrowleft";
-  /** Constant <code>ENTER="enter"</code> */
+
+  /** The constant representing the "enter" key. */
   public static final String ENTER = "enter";
-  /** Constant <code>DELETE="delete"</code> */
+
+  /** The constant representing the "delete" key. */
   public static final String DELETE = "delete";
-  /** Constant <code>SPACE="space"</code> */
+
+  /** The constant representing the "space" key. */
   public static final String SPACE = "space";
-  /** Constant <code>TAB="tab"</code> */
+
+  /** The constant representing the "tab" key. */
   public static final String TAB = "tab";
-  /** Constant <code>BACKSPACE="backspace"</code> */
+
+  /** The constant representing the "backspace" key. */
   public static final String BACKSPACE = "backspace";
 
   private final Map<String, List<KeyEventHandlerContext>> handlers = new HashMap<>();
@@ -55,10 +80,10 @@ public class KeyboardKeyListener implements EventListener, AcceptKeyEvents {
   private HasDefaultEventOptions<KeyboardEventOptions> hasDefaultEventOptions;
 
   /**
-   * Constructor for KeyboardKeyListener.
+   * Constructs a new {@code KeyboardKeyListener} instance with the provided default event options.
    *
-   * @param hasDefaultEventOptions a {@link org.dominokit.domino.ui.events.HasDefaultEventOptions}
-   *     object
+   * @param hasDefaultEventOptions The {@link HasDefaultEventOptions} object that provides default
+   *     event options.
    */
   public KeyboardKeyListener(HasDefaultEventOptions<KeyboardEventOptions> hasDefaultEventOptions) {
     this.hasDefaultEventOptions = hasDefaultEventOptions;
@@ -83,7 +108,8 @@ public class KeyboardKeyListener implements EventListener, AcceptKeyEvents {
     keyEventHandlerContexts.stream()
         .filter(
             context ->
-                context.options.get().withCtrlKey == keyboardEvent.ctrlKey
+                context.predicate.test(keyboardEvent)
+                    && context.options.get().withCtrlKey == keyboardEvent.ctrlKey
                     && context.options.get().withAltKey == keyboardEvent.altKey
                     && context.options.get().withShiftKey == keyboardEvent.shiftKey
                     && context.options.get().withMetaKey == keyboardEvent.metaKey
@@ -252,6 +278,39 @@ public class KeyboardKeyListener implements EventListener, AcceptKeyEvents {
 
   /** {@inheritDoc} */
   @Override
+  public AcceptKeyEvents alphanumeric(KeyboardEventOptions options, EventListener handler) {
+    return any(
+        options,
+        handler,
+        keyboardEvent ->
+            nonNull(keyboardEvent.key)
+                && new JsRegExp(
+                        "^[a-zA-Z0-9\\u0600-\\u06FF\\u0660-\\u0669\\u06F0-\\u06F9 _.-]{1}$", "g")
+                    .test(keyboardEvent.key));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public AcceptKeyEvents alphanumeric(EventListener handler) {
+    return any(
+        hasDefaultEventOptions.getOptions(),
+        handler,
+        keyboardEvent ->
+            nonNull(keyboardEvent.key)
+                && new JsRegExp(
+                        "^[a-zA-Z0-9\\u0600-\\u06FF\\u0660-\\u0669\\u06F0-\\u06F9 _.-]{1}$", "g")
+                    .test(keyboardEvent.key));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public AcceptKeyEvents any(
+      KeyboardEventOptions options, EventListener handler, Predicate<KeyboardEvent> predicate) {
+    return addGlobalHandler(contextOf(handler, () -> options, predicate));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public AcceptKeyEvents any(EventListener handler) {
     return addGlobalHandler(contextOf(handler, () -> hasDefaultEventOptions.getOptions()));
   }
@@ -272,6 +331,13 @@ public class KeyboardKeyListener implements EventListener, AcceptKeyEvents {
   private KeyEventHandlerContext contextOf(
       EventListener handler, Supplier<KeyboardEventOptions> options) {
     return new KeyEventHandlerContext(handler, options);
+  }
+
+  private KeyEventHandlerContext contextOf(
+      EventListener handler,
+      Supplier<KeyboardEventOptions> options,
+      Predicate<KeyboardEvent> predicate) {
+    return new KeyEventHandlerContext(handler, options, predicate);
   }
 
   /** {@inheritDoc} */

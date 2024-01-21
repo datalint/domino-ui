@@ -15,16 +15,24 @@
  */
 package org.dominokit.domino.ui.utils;
 
+import static org.dominokit.domino.ui.utils.Domino.*;
+
 import elemental2.dom.Event;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-/** CanChange interface. */
+/**
+ * The {@code CanChange} interface represents an entity that can change and trigger an event.
+ * Classes or components implementing this interface may provide an implementation for the {@link
+ * #onChange()} method to specify an event handler for change events.
+ */
 public interface CanChange {
+
   /**
-   * onChange.
+   * Returns an optional event handler for change events.
    *
-   * @return a {@link java.util.Optional} object
+   * @return An {@link Optional} containing an event handler for change events, or an empty {@code
+   *     Optional} if no handler is provided.
    */
   default Optional<Consumer<Event>> onChange() {
     return Optional.empty();

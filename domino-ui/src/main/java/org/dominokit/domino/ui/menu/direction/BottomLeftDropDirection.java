@@ -17,6 +17,7 @@ package org.dominokit.domino.ui.menu.direction;
 
 import static elemental2.dom.DomGlobal.window;
 import static org.dominokit.domino.ui.style.SpacingCss.dui_flex_col_reverse;
+import static org.dominokit.domino.ui.utils.Domino.*;
 import static org.dominokit.domino.ui.utils.ElementsFactory.elements;
 import static org.dominokit.domino.ui.utils.Unit.px;
 
@@ -32,21 +33,26 @@ public class BottomLeftDropDirection implements DropDirection {
     dui_flex_col_reverse.remove(source);
     DOMRect targetRect = target.getBoundingClientRect();
     DOMRect sourceRect = source.getBoundingClientRect();
-    double delta = 0;
-    double availableSpace = targetRect.left + targetRect.width;
-    if (availableSpace < sourceRect.width) {
-      delta = sourceRect.width - availableSpace;
-    }
 
     Style.of(source)
         .style
         .setProperty("top", px.of((targetRect.top + window.pageYOffset) + targetRect.height + 1));
-    Style.of(source)
-        .style
-        .setProperty(
-            "left", px.of(targetRect.left - (sourceRect.width - targetRect.width) + delta));
+    Style.of(source).style.setProperty("left", px.of(targetRect.left));
     dui_dd_bottom_left.apply(source);
     elements.elementOf(source).setCssProperty("--dui-menu-drop-min-width", targetRect.width + "px");
+
+    DOMRect newRect = source.getBoundingClientRect();
+    double delta = 0;
+    double availableSpace = targetRect.left + targetRect.width;
+    if (availableSpace < newRect.width) {
+      delta = newRect.width - availableSpace;
+    }
+
+    double left =
+        (targetRect.left - (newRect.left - targetRect.left))
+            - (sourceRect.width - targetRect.width)
+            + delta;
+    Style.of(source).style.setProperty("left", px.of(Math.max(left, 0)));
   }
 
   /** {@inheritDoc} */

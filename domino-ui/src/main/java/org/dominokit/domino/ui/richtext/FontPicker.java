@@ -15,6 +15,10 @@
  */
 package org.dominokit.domino.ui.richtext;
 
+import static org.dominokit.domino.ui.utils.Domino.*;
+import static org.dominokit.domino.ui.utils.Domino.body;
+import static org.dominokit.domino.ui.utils.Domino.span;
+
 import elemental2.dom.Element;
 import elemental2.dom.HTMLElement;
 import org.dominokit.domino.ui.button.Button;
@@ -31,6 +35,23 @@ import org.dominokit.domino.ui.utils.BaseDominoElement;
 import org.dominokit.domino.ui.utils.ChildHandler;
 import org.dominokit.domino.ui.utils.DominoDom;
 
+/**
+ * A UI component that allows users to pick a font from a dropdown list.
+ *
+ * <p>The FontPicker provides a button displaying the current font, and a dropdown menu with a list
+ * of available fonts. When a font is selected, it is reflected on the button.
+ *
+ * <p><b>Usage Example:</b>
+ *
+ * <pre>
+ * FontPicker fontPicker = FontPicker.create();
+ * fontPicker.addChangeListener(font -> {
+ *     // handle font change logic
+ * });
+ * </pre>
+ *
+ * @see BaseDominoElement
+ */
 public class FontPicker extends BaseDominoElement<HTMLElement, FontPicker>
     implements ColorPickerStyles {
 
@@ -40,10 +61,16 @@ public class FontPicker extends BaseDominoElement<HTMLElement, FontPicker>
   private String fontName;
   private Menu<String> fontsMenu;
 
+  /**
+   * Factory method to create a new instance of FontPicker.
+   *
+   * @return A new instance of FontPicker.
+   */
   public static FontPicker create() {
     return new FontPicker();
   }
 
+  /** Initializes the FontPicker with its UI components. */
   public FontPicker() {
     this.root =
         ButtonsGroup.create(
@@ -82,16 +109,32 @@ public class FontPicker extends BaseDominoElement<HTMLElement, FontPicker>
     init(this);
   }
 
+  /**
+   * Retrieves the clickable element of the button.
+   *
+   * @return The element that is clickable.
+   */
   @Override
   public Element getClickableElement() {
     return mainButton.element();
   }
 
+  /**
+   * Allows further customization of the internal {@link Menu} instance.
+   *
+   * @param handler A handler to apply customizations to the internal menu.
+   * @return The current {@link FontPicker} instance.
+   */
   public FontPicker withMenu(ChildHandler<FontPicker, Menu<String>> handler) {
     handler.apply(this, fontsMenu);
     return this;
   }
 
+  /**
+   * @dominokit-site-ignore {@inheritDoc}
+   *     <p>Returns the root element of the FontPicker.
+   * @return The root {@link HTMLElement} of the FontPicker.
+   */
   @Override
   public HTMLElement element() {
     return root.element();

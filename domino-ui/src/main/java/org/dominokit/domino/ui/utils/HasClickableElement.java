@@ -13,21 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.dominokit.domino.ui.utils;
+
+import static org.dominokit.domino.ui.utils.Domino.*;
 
 import elemental2.dom.HTMLElement;
 
 /**
- * Component that can be clicked or has a child element that can be clicked should implement this
- * interface
+ * The {@code HasClickableElement} interface defines a method to retrieve a clickable HTML element.
  */
 @FunctionalInterface
 public interface HasClickableElement {
-  /** @return the {@link HTMLElement} that should receive and click listeners */
+
   /**
-   * getClickableElement.
+   * Gets the clickable HTML element.
    *
-   * @return a {@link elemental2.dom.HTMLElement} object
+   * @return The clickable HTML element represented by an {@link HTMLElement}.
    */
   HTMLElement getClickableElement();
 }
