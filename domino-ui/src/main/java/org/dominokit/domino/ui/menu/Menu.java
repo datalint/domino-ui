@@ -119,6 +119,7 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
   private boolean selectionListenersPaused = false;
   private boolean multiSelect = false;
   private boolean autoOpen = true;
+  private boolean preserveSelectionStyles = true;
   private EventListener repositionListener =
       evt -> {
         if (isOpened()) {
@@ -155,6 +156,7 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
   private EventListener lostFocusListener;
   private boolean closeOnBlur = DominoUIConfig.CONFIG.isClosePopupOnBlur();
   private OpenMenuCondition<V> openMenuCondition = (menu) -> true;
+  private List<MediaQuery.MediaQueryListenerRecord> mediaQueryRecords = new ArrayList<>();
 
   /**
    * Factory method to create a new Menu instance.
@@ -354,19 +356,6 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
 
     element.addEventListener("keydown", keyboardNavigation);
 
-    MediaQuery.addOnSmallAndDownListener(
-        () -> {
-          if (centerOnSmallScreens) {
-            this.smallScreen = true;
-          }
-        });
-    MediaQuery.addOnMediumAndUpListener(
-        () -> {
-          if (centerOnSmallScreens) {
-            this.smallScreen = false;
-            backArrowContainer.remove();
-          }
-        });
     backIcon = LazyChild.of(Icons.keyboard_backspace().addCss(dui_menu_back_icon), menuHeader);
     backIcon.whenInitialized(
         () -> {
@@ -401,6 +390,41 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
                 0);
           }
         };
+
+    nowAndWhenAttached(
+        () -> {
+          mediaQueryRecords.add(
+              MediaQuery.addOnSmallAndDownListener(
+                  () -> {
+                    if (centerOnSmallScreens) {
+                      this.smallScreen = true;
+                    }
+                  }));
+
+          mediaQueryRecords.add(
+              MediaQuery.addOnMediumAndUpListener(
+                  () -> {
+                    if (centerOnSmallScreens) {
+                      this.smallScreen = false;
+                      backArrowContainer.remove();
+                    }
+                  }));
+
+          DomGlobal.document.body.addEventListener("blur", lostFocusListener, true);
+          if (this.dropDown) {
+            document.addEventListener("scroll", repositionListener, true);
+          }
+        });
+
+    nowAndWhenDetached(
+        () -> {
+          DomGlobal.document.body.removeEventListener("blur", lostFocusListener, true);
+          document.removeEventListener("scroll", repositionListener, true);
+          mediaQueryRecords.forEach(MediaQuery.MediaQueryListenerRecord::remove);
+        });
+
+    this.addEventListener(EventType.touchstart.getName(), Event::stopPropagation);
+    this.addEventListener(EventType.touchend.getName(), Event::stopPropagation);
   }
 
   public void focusFirstMatch(String token) {
@@ -483,6 +507,11 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
     return this;
   }
 
+  public Menu<V> appendChild(SubheaderAddon<?>... addons) {
+    Arrays.stream(addons).forEach(this::appendChild);
+    return this;
+  }
+
   /**
    * Appends a menu item to the menu.
    *
@@ -495,6 +524,11 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
       menuItems.add(menuItem);
       afterAddItem(menuItem);
     }
+    return this;
+  }
+
+  public Menu<V> appendChild(AbstractMenuItem<V>... menuItems) {
+    Arrays.stream(menuItems).forEach(this::appendChild);
     return this;
   }
 
@@ -1267,13 +1301,24 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
    * @return The current {@link Menu} instance.
    */
   public Menu<V> openSubMenu(Menu<V> dropMenu) {
-    if (!Objects.equals(currentOpen, dropMenu)) {
-      closeCurrentOpen();
+    if (dropMenu.hasVisibleItems()) {
+      if (!Objects.equals(currentOpen, dropMenu)) {
+        closeCurrentOpen();
+      }
+      dropMenu.open();
+      setCurrentOpen(dropMenu);
     }
-    dropMenu.open();
-    setCurrentOpen(dropMenu);
 
     return this;
+  }
+
+  private boolean hasVisibleItems() {
+    for (int index = 0; index < menuItems.size(); index++) {
+      if (menuItems.get(index).isVisible()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -1358,7 +1403,7 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
       if (isSearchable()) {
         searchBox.get().clearSearch();
       }
-      triggerExpandListeners(this);
+      triggerOpenListeners(this);
       onAttached(
           mutationRecord -> {
             position();
@@ -1374,7 +1419,6 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
         menuHeader.get().insertFirst(backArrowContainer);
       }
       show();
-      DomGlobal.document.body.addEventListener("blur", lostFocusListener, true);
     }
   }
 
@@ -1566,12 +1610,11 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
                 menuTarget -> {
                   menuTarget.getTargetElement().element().focus();
                 });
-        DomGlobal.document.body.removeEventListener("blur", lostFocusListener, true);
         if (isSearchable()) {
           searchBox.get().clearSearch();
         }
         menuItems.forEach(AbstractMenuItem::onParentClosed);
-        triggerCollapseListeners(this);
+        triggerCloseListeners(this);
         if (smallScreen && nonNull(parent) && parent.isDropDown()) {
           parent.expand();
         }
@@ -1781,7 +1824,6 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
     if (dropdown) {
       this.setAttribute("domino-ui-root-menu", true).setAttribute(DOMINO_UI_AUTO_CLOSABLE, true);
       menuElement.elevate(Elevation.LEVEL_1);
-      document.addEventListener("scroll", repositionListener, true);
     } else {
       this.removeAttribute("domino-ui-root-menu").removeAttribute(DOMINO_UI_AUTO_CLOSABLE);
       menuElement.elevate(Elevation.NONE);
@@ -1898,32 +1940,24 @@ public class Menu<V> extends BaseDominoElement<HTMLDivElement, Menu<V>>
     return this;
   }
 
-  /** Represents a handler called when the menu is closed. */
-  @FunctionalInterface
-  public interface CloseHandler {
-
-    /** Method to be executed when the menu is closed. */
-    void onClose();
+  /**
+   * @return boolean true if the selection style should be preserved after the menu item loses the
+   *     selection focus, otherwise false.
+   */
+  public boolean isPreserveSelectionStyles() {
+    return preserveSelectionStyles;
   }
 
-  /** Represents a handler called when the menu is opened. */
-  @FunctionalInterface
-  public interface OpenHandler {
-
-    /** Method to be executed when the menu is opened. */
-    void onOpen();
-  }
-
-  /** Handles changes in the selection status of a menu item. */
-  public interface MenuItemSelectionHandler<V> {
-
-    /**
-     * Called when a menu item's selection status changes.
-     *
-     * @param menuItem The menu item whose selection status changed.
-     * @param selected {@code true} if the item is now selected, {@code false} otherwise.
-     */
-    void onItemSelectionChange(AbstractMenuItem<V> menuItem, boolean selected);
+  /**
+   * if true selecting an Item in the menu will preserve the selection style when the menu loses the
+   * focus.
+   *
+   * @param preserveSelectionStyles boolean, true to preserve the style, false to remove the style.
+   * @return same Menu instance.
+   */
+  public Menu<V> setPreserveSelectionStyles(boolean preserveSelectionStyles) {
+    this.preserveSelectionStyles = preserveSelectionStyles;
+    return this;
   }
 
   /** Represents a handler for a group of menu items. */

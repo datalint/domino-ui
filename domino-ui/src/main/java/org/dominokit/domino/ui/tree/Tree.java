@@ -198,6 +198,11 @@ public class Tree<T> extends BaseDominoElement<HTMLDivElement, Tree<T>>
     return node;
   }
 
+  public Tree<T> appendChild(TreeItem<T>... treeItems) {
+    Arrays.stream(treeItems).forEach(this::appendChild);
+    return this;
+  }
+
   /**
    * Sets a custom icon supplier for tree items in this tree. The icon supplier provides icons for
    * each tree item based on its content.

@@ -33,6 +33,7 @@ import org.dominokit.domino.ui.i18n.QuickSearchLabels;
 import org.dominokit.domino.ui.icons.Icon;
 import org.dominokit.domino.ui.icons.lib.Icons;
 import org.dominokit.domino.ui.keyboard.KeyboardEventOptions;
+import org.dominokit.domino.ui.menu.direction.DropDirection;
 import org.dominokit.domino.ui.utils.BaseDominoElement;
 import org.dominokit.domino.ui.utils.ChildHandler;
 import org.dominokit.domino.ui.utils.PostfixAddOn;
@@ -70,7 +71,7 @@ import org.gwtproject.timer.client.Timer;
 public class SearchBox extends BaseDominoElement<HTMLDivElement, SearchBox>
     implements HasLabels<QuickSearchLabels>, HasComponentConfig<SearchConfig> {
 
-  private int autoSearchDelay;
+  private int autoSearchDelay = -1;
   private DivElement root;
   private final TextBox textBox;
   private boolean autoSearch = true;
@@ -93,7 +94,7 @@ public class SearchBox extends BaseDominoElement<HTMLDivElement, SearchBox>
   /** Constructs a new `SearchBox` instance with default settings. */
   public SearchBox() {
     init(this);
-    this.autoSearchDelay = getConfig().getAutoSearchDelay();
+
     root = div().addCss(dui_quick_search);
     searchIcon =
         Icons.magnify()
@@ -103,12 +104,12 @@ public class SearchBox extends BaseDominoElement<HTMLDivElement, SearchBox>
                   autoSearchTimer.cancel();
                   doSearch();
                 })
-            .setTooltip(getLabels().defaultQuickSearchPlaceHolder());
+            .setTooltip(getLabels().defaultQuickSearchPlaceHolder(), DropDirection.BEST_FIT_SIDE);
 
     clearIcon =
         Icons.close()
             .clickable()
-            .setTooltip(getLabels().defaultQuickSearchClearToolTip())
+            .setTooltip(getLabels().defaultQuickSearchClearToolTip(), DropDirection.BEST_FIT_SIDE)
             .addClickListener(
                 evt -> {
                   clearSearch();
@@ -151,7 +152,7 @@ public class SearchBox extends BaseDominoElement<HTMLDivElement, SearchBox>
     autoSearchEventListener =
         evt -> {
           autoSearchTimer.cancel();
-          autoSearchTimer.schedule(autoSearchDelay);
+          autoSearchTimer.schedule(getAutoSearchDelay());
         };
 
     setAutoSearch(true);
@@ -223,7 +224,7 @@ public class SearchBox extends BaseDominoElement<HTMLDivElement, SearchBox>
    * @return The auto search delay.
    */
   public int getAutoSearchDelay() {
-    return autoSearchDelay;
+    return this.autoSearchDelay > 0 ? this.autoSearchDelay : getConfig().getAutoSearchDelay();
   }
 
   /**

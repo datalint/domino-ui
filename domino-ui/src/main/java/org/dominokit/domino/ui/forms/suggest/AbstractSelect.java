@@ -80,6 +80,7 @@ public abstract class AbstractSelect<
   private SpanElement placeHolderElement;
   private InputElement inputElement;
   private InputElement typingElement;
+  private int typeAheadDelay = -1;
 
   /**
    * Default constructor which initializes the underlying structures, sets up event listeners, and
@@ -103,7 +104,7 @@ public abstract class AbstractSelect<
                     .setTabIndex(-1)
                     .onKeyPress(keyEvents -> keyEvents.alphanumeric(Event::stopPropagation)));
 
-    DelayedTextInput.create(typingElement, 1000)
+    DelayedTextInput.create(typingElement, getTypeAheadDelay())
         .setDelayedAction(
             () -> {
               optionsMenu
@@ -164,7 +165,7 @@ public abstract class AbstractSelect<
                         .ifPresent(
                             meta ->
                                 onOptionDeselected(meta.getOption(), isChangeListenersPaused())))
-            .addCollapseListener((menu) -> focus());
+            .addOpenListener((menu) -> focus());
 
     onAttached(
         mutationRecord -> {
@@ -199,7 +200,9 @@ public abstract class AbstractSelect<
 
     appendChild(
         PrimaryAddOn.of(
-            Icons.delete()
+            config()
+                .getUIConfig()
+                .clearableInputDefaultIcon()
                 .addCss(dui_form_select_clear)
                 .clickable()
                 .addClickListener(
@@ -207,6 +210,17 @@ public abstract class AbstractSelect<
                       evt.stopPropagation();
                       clearValue(false);
                     })));
+  }
+
+  private int getTypeAheadDelay() {
+    return typeAheadDelay > 0
+        ? typeAheadDelay
+        : config().getUIConfig().getSelectBoxTypeAheadDelay();
+  }
+
+  public C setTypeAheadDelay(int delay) {
+    this.typeAheadDelay = delay;
+    return (C) this;
   }
 
   /**
@@ -262,7 +276,19 @@ public abstract class AbstractSelect<
           true,
           field -> {
             List<AbstractMenuItem<T>> selection = optionsMenu.getSelection();
-            new ArrayList<>(selection).forEach(AbstractMenuItem::deselect);
+            new ArrayList<>(selection)
+                .forEach(
+                    item -> {
+                      withPausedChangeListeners(
+                          select -> {
+                            item.deselect(silent);
+                            if (silent) {
+                              OptionMeta.get(item)
+                                  .ifPresent(
+                                      meta -> onOptionDeselected((O) meta.getOption(), silent));
+                            }
+                          });
+                    });
           });
 
       if (!silent) {
@@ -737,7 +763,7 @@ public abstract class AbstractSelect<
   public C withValue(V value, boolean silent) {
     V oldValue = getValue();
     if (!Objects.equals(value, oldValue)) {
-      doSetValue(value);
+      doSetValue(value, silent);
       if (!silent) {
         triggerChangeListeners(oldValue, getValue());
       }
@@ -772,8 +798,9 @@ public abstract class AbstractSelect<
    * its behavior.
    *
    * @param value The value to set.
+   * @param silent boolean to pause triggering change handlers
    */
-  protected abstract void doSetValue(V value);
+  protected abstract void doSetValue(V value, boolean silent);
 
   /**
    * Abstract method to set a specified option for the select. Concrete implementations will define
@@ -850,6 +877,12 @@ public abstract class AbstractSelect<
         .findFirst();
   }
 
+  private Optional<AbstractMenuItem<T>> findMenuItemByKey(String key) {
+    return optionsMenu.getFlatMenuItems().stream()
+        .filter(menuItem -> Objects.equals(key, menuItem.getKey()))
+        .findFirst();
+  }
+
   /**
    * Searches for an option by its value within the select component.
    *
@@ -864,6 +897,12 @@ public abstract class AbstractSelect<
         .findFirst();
   }
 
+  private Optional<AbstractMenuItem<T>> findMenuItemByValue(T value) {
+    return optionsMenu.getFlatMenuItems().stream()
+        .filter(menuItem -> Objects.equals(value, menuItem.getValue()))
+        .findFirst();
+  }
+
   /**
    * Searches for an option by its index within the select component.
    *
@@ -872,9 +911,12 @@ public abstract class AbstractSelect<
    *     found.
    */
   public Optional<O> findOptionByIndex(int index) {
+    return findMenuItemByIndex(index).map(item -> OptionMeta.<T, E, O>get(item).get().getOption());
+  }
+
+  private Optional<AbstractMenuItem<T>> findMenuItemByIndex(int index) {
     if (index < optionsMenu.getFlatMenuItems().size() && index >= 0) {
-      AbstractMenuItem<T> menuItem = optionsMenu.getFlatMenuItems().get(index);
-      return Optional.ofNullable(OptionMeta.<T, E, O>get(menuItem).get().getOption());
+      return Optional.ofNullable(optionsMenu.getFlatMenuItems().get(index));
     }
     return Optional.empty();
   }
@@ -993,7 +1035,7 @@ public abstract class AbstractSelect<
    * @return an instance of the concrete class.
    */
   public C deselectAt(int index, boolean silent) {
-    findOptionByIndex(index).ifPresent(o -> onOptionDeselected(o, silent));
+    findMenuItemByIndex(index).ifPresent(item -> item.deselect(silent));
     return (C) this;
   }
 
@@ -1018,7 +1060,7 @@ public abstract class AbstractSelect<
    * @return an instance of the concrete class.
    */
   public C deselectByKey(String key, boolean silent) {
-    findOptionByKey(key).ifPresent(o -> onOptionDeselected(o, silent));
+    findMenuItemByKey(key).ifPresent(item -> item.deselect(silent));
     return (C) this;
   }
 
@@ -1042,7 +1084,7 @@ public abstract class AbstractSelect<
    * @return an instance of the concrete class.
    */
   public C deselectByValue(T value, boolean silent) {
-    findOptionByValue(value).ifPresent(o -> onOptionDeselected(o, silent));
+    findMenuItemByValue(value).ifPresent(item -> item.deselect(silent));
     return (C) this;
   }
 

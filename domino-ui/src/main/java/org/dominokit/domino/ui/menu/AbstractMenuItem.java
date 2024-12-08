@@ -19,6 +19,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.dominokit.domino.ui.utils.Domino.*;
 
+import elemental2.core.JsDate;
 import elemental2.dom.Element;
 import elemental2.dom.Event;
 import elemental2.dom.HTMLElement;
@@ -33,6 +34,7 @@ import org.dominokit.domino.ui.elements.LIElement;
 import org.dominokit.domino.ui.events.EventType;
 import org.dominokit.domino.ui.icons.lib.Icons;
 import org.dominokit.domino.ui.menu.direction.BestFitSideDropDirection;
+import org.dominokit.domino.ui.style.ConditionalCssClass;
 import org.dominokit.domino.ui.utils.*;
 import org.gwtproject.editor.client.TakesValue;
 
@@ -99,17 +101,33 @@ public class AbstractMenuItem<V> extends BaseDominoElement<HTMLLIElement, Abstra
     indicatorIcon = createIndicator(Icons.menu_right());
 
     init(this);
+    double[] startTime = new double[] {0};
 
     this.addEventListener(
         EventType.touchstart.getName(),
         evt -> {
-          evt.stopPropagation();
-          evt.preventDefault();
+          startTime[0] = JsDate.now();
           focus();
           openSubMenu();
         });
-    this.addEventListener(EventType.touchend.getName(), this::onSelected);
-    this.addEventListener(EventType.click.getName(), this::onSelected);
+    this.addEventListener(
+        EventType.touchend.getName(),
+        evt -> {
+          evt.stopPropagation();
+          double endTime = JsDate.now();
+          double diff = endTime - startTime[0];
+          if (diff < 200) {
+            evt.preventDefault();
+            onSelected(evt);
+          }
+        });
+    this.addEventListener(
+        EventType.click.getName(),
+        evt -> {
+          evt.stopPropagation();
+          evt.preventDefault();
+          onSelected(evt);
+        });
     this.addEventListener(EventType.mouseenter.getName(), evt -> openSubMenu());
   }
 
@@ -147,8 +165,6 @@ public class AbstractMenuItem<V> extends BaseDominoElement<HTMLLIElement, Abstra
   }
 
   private void onSelected(Event evt) {
-    evt.stopPropagation();
-    evt.preventDefault();
     if (parent.isMultiSelect() && isSelected()) {
       deselect();
     } else {
@@ -234,7 +250,8 @@ public class AbstractMenuItem<V> extends BaseDominoElement<HTMLLIElement, Abstra
    */
   public <T extends AbstractMenuItem<V>> T select(boolean silent) {
     if (!isDisabled() && isSelectable()) {
-      addCss(dui_menu_item_selected);
+      addCss(
+          ConditionalCssClass.of(dui_menu_item_selected, () -> parent.isPreserveSelectionStyles()));
       setAttribute("selected", true);
       if (!silent) {
         selectionHandlers.forEach(handler -> handler.onSelection(this));
@@ -558,28 +575,14 @@ public class AbstractMenuItem<V> extends BaseDominoElement<HTMLLIElement, Abstra
     return linkElement.element();
   }
 
-  /**
-   * Appends a child to the postfix element.
-   *
-   * @param postfixAddOn the postfix add-on to append
-   * @param <T> the type of the menu item
-   * @return the current instance of the menu item
-   */
-  public <T extends AbstractMenuItem<V>> T appendChild(PostfixAddOn<?> postfixAddOn) {
-    postfixElement.appendChild(postfixAddOn);
-    return (T) this;
+  @Override
+  public PrefixElement getPrefixElement() {
+    return PrefixElement.of(prefixElement);
   }
 
-  /**
-   * Appends a child to the prefix element.
-   *
-   * @param prefixAddOn the prefix add-on to append
-   * @param <T> the type of the menu item
-   * @return the current instance of the menu item
-   */
-  public <T extends AbstractMenuItem<V>> T appendChild(PrefixAddOn<?> prefixAddOn) {
-    prefixElement.appendChild(prefixAddOn);
-    return (T) this;
+  @Override
+  public PostfixElement getPostfixElement() {
+    return PostfixElement.of(postfixElement);
   }
 
   /**

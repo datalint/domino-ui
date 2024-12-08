@@ -19,7 +19,7 @@ package org.dominokit.domino.ui.config;
  * Implementations of this interface can be used to configure defaults for {@link
  * org.dominokit.domino.ui.search.SearchBox} component
  */
-public interface SearchConfig extends ComponentConfig {
+public interface SearchConfig extends DelayedActionConfig {
 
   /**
    * Use this method to define the default auto search delay for SearchBox in milliseconds
@@ -29,6 +29,18 @@ public interface SearchConfig extends ComponentConfig {
    * @return an integer delay in milliseconds
    */
   default int getAutoSearchDelay() {
-    return 200;
+    return getDelayedExecutionDefaultDelay();
+  }
+
+  /**
+   * Use this method to define the default auto search delay for datatable DelayedHeaderFilter in
+   * milliseconds
+   *
+   * <p>Defaults to : <b>{@link #getAutoSearchDelay()}</b>>
+   *
+   * @return an integer delay in milliseconds
+   */
+  default int getTableTextHeaderFilterSearchDelay() {
+    return getAutoSearchDelay();
   }
 }

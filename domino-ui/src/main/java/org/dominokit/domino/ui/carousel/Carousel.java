@@ -19,11 +19,17 @@ import static org.dominokit.domino.ui.carousel.CarouselStyles.*;
 import static org.dominokit.domino.ui.utils.Domino.*;
 
 import elemental2.dom.HTMLDivElement;
+import elemental2.dom.WheelEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import jsinterop.base.Js;
+import org.dominokit.domino.ui.config.CarouselConfig;
+import org.dominokit.domino.ui.config.HasComponentConfig;
 import org.dominokit.domino.ui.elements.AnchorElement;
 import org.dominokit.domino.ui.elements.DivElement;
 import org.dominokit.domino.ui.elements.OListElement;
+import org.dominokit.domino.ui.events.EventType;
 import org.dominokit.domino.ui.icons.lib.Icons;
 import org.dominokit.domino.ui.style.CssClass;
 import org.dominokit.domino.ui.style.GenericCss;
@@ -39,7 +45,8 @@ import org.gwtproject.timer.client.Timer;
  *
  * @see BaseDominoElement
  */
-public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
+public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel>
+    implements HasComponentConfig<CarouselConfig> {
 
   private final OListElement indicatorsElement;
   private final DivElement slidesElement;
@@ -57,6 +64,7 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
   private Slide targetSlide;
   private int autoSlideDuration = 3000;
   private boolean attached = false;
+  private CarouselConfig carouselConfig;
 
   /**
    * Factory method to create an empty Carousel
@@ -69,7 +77,6 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
 
   /** Creates and empty Carousel */
   public Carousel() {
-
     element =
         div()
             .appendChild(indicatorsElement = ol().addCss(carousel_indicators))
@@ -89,11 +96,7 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
                         .appendChild(
                             Icons.chevron_right()
                                 .addCss(GenericCss.dui_vertical_center, dui_font_size_12))
-                        .addEventListener(
-                            "click",
-                            evt -> {
-                              next();
-                            }))
+                        .addEventListener("click", evt -> next()))
             .addCss(carousel);
     timer =
         new Timer() {
@@ -105,6 +108,21 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
     addAttachListener();
     addDetachListener();
     init(this);
+    addEventListener(
+        EventType.wheel.getName(),
+        evt -> {
+          if (getConfig().isScrollCarouselWithWheel()) {
+            evt.preventDefault();
+            WheelEvent wheelEvent = Js.uncheckedCast(evt);
+            if (wheelEvent.deltaY > 0) {
+              nextSlide();
+            }
+
+            if (wheelEvent.deltaY < 0) {
+              prevSlide();
+            }
+          }
+        });
   }
 
   /**
@@ -214,6 +232,11 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
 
     SwipeUtil.addSwipeListener(SwipeUtil.SwipeDirection.LEFT, slide.element(), evt -> nextSlide());
     SwipeUtil.addSwipeListener(SwipeUtil.SwipeDirection.RIGHT, slide.element(), evt -> prevSlide());
+    return this;
+  }
+
+  public Carousel appendChild(Slide... slides) {
+    Arrays.asList(slides).forEach(this::appendChild);
     return this;
   }
 
@@ -404,6 +427,16 @@ public class Carousel extends BaseDominoElement<HTMLDivElement, Carousel> {
   /** @return The current active {@link org.dominokit.domino.ui.carousel.Slide} component */
   public Slide getActiveSlide() {
     return activeSlide;
+  }
+
+  @Override
+  public CarouselConfig getOwnConfig() {
+    return carouselConfig;
+  }
+
+  public Carousel setConfig(CarouselConfig config) {
+    this.carouselConfig = config;
+    return this;
   }
 
   public enum SlideDirection {

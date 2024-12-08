@@ -149,6 +149,7 @@ public class DateBox extends TextInputFormField<DateBox, HTMLInputElement, Date>
             .setOpenOnClick(this.openOnClick)
             .setPosition(BEST_MIDDLE_DOWN_UP)
             .appendChild(this.calendar)
+            .addCloseListener(component -> calendar.resetView())
             .addOnRemoveListener(
                 popover -> {
                   withOpenOnFocusToggleListeners(false, field -> focus());
@@ -183,11 +184,35 @@ public class DateBox extends TextInputFormField<DateBox, HTMLInputElement, Date>
                   clearInvalid();
                 } catch (IllegalArgumentException ignored) {
                   if (parseStrict) {
-                    invalidate("Unable to parse date value " + value);
+                    invalidate(getLabels().calendarInvalidDateFormat(value));
                   }
                   DomGlobal.console.warn("Unable to parse date value " + value);
                 }
               }
+            });
+
+    getInputElement()
+        .addEventListener(
+            "input",
+            evt -> {
+              DelayedExecution.execute(
+                  () -> {
+                    String value = getStringValue();
+                    if (value.isEmpty()) {
+                      clear();
+                    } else {
+                      try {
+                        withValue(getFormattedValue(value));
+                        clearInvalid();
+                      } catch (IllegalArgumentException ignored) {
+                        if (parseStrict) {
+                          invalidate(getLabels().calendarInvalidDateFormat(value));
+                        }
+                        DomGlobal.console.warn("Unable to parse date value " + value);
+                      }
+                    }
+                  },
+                  config().getUIConfig().getDateBoxDefaultInputParseDelay());
             });
 
     appendChild(
@@ -498,6 +523,7 @@ public class DateBox extends TextInputFormField<DateBox, HTMLInputElement, Date>
       updateStringValue();
     } else {
       getInputElement().element().value = "";
+      close();
     }
     withDateSelectionToggleListeners(
         false,
@@ -511,6 +537,12 @@ public class DateBox extends TextInputFormField<DateBox, HTMLInputElement, Date>
   private void updateStringValue() {
     getInputElement().element().value =
         getFormatted(this.value, this.calendar.getDateTimeFormatInfo());
+  }
+
+  @Override
+  public DateBox clear(boolean silent) {
+    close();
+    return super.clear(silent);
   }
 
   /**
