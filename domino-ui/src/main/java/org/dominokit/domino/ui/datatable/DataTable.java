@@ -325,7 +325,7 @@ public class DataTable<T> extends BaseDominoElement<HTMLDivElement, DataTable<T>
    *
    * @return the collection of data in the table
    */
-  public Collection<T> getData() {
+  public List<T> getData() {
     return data;
   }
 

@@ -15,6 +15,7 @@
  */
 package org.dominokit.domino.ui.counter;
 
+import java.util.function.Consumer;
 import org.gwtproject.timer.client.Timer;
 
 /**
@@ -44,6 +45,7 @@ public class Counter {
   private final int increment;
   private int currentValue;
   private CountHandler countHandler;
+  private Consumer<Integer> completionHandler;
 
   private Counter(
       int countFrom, int countTo, int interval, int increment, CountHandler countHandler) {
@@ -54,6 +56,12 @@ public class Counter {
     this.countHandler = countHandler;
 
     initTimer();
+  }
+
+  public Counter withCompletionHandler(Consumer<Integer> completionHandler) {
+    this.completionHandler = completionHandler;
+
+    return this;
   }
 
   /**
@@ -71,48 +79,35 @@ public class Counter {
         new Timer() {
           @Override
           public void run() {
-            if (currentValue != countTo) {
-              if (countFrom < countTo) {
-                currentValue += increment;
-              } else {
-                currentValue -= increment;
-              }
+            if (increment > 0 && currentValue < countTo
+                || increment < 0 && currentValue > countTo) {
+              currentValue += increment;
               notifyCount();
             } else {
               cancel();
+              if (completionHandler != null) completionHandler.accept(getCurrentValue());
             }
           }
         };
   }
 
+  private int getCurrentValue() {
+    return increment > 0 ? Math.min(currentValue, countTo) : Math.max(currentValue, countTo);
+  }
+
   private void notifyCount() {
-    countHandler.onCount(currentValue);
+    countHandler.onCount(getCurrentValue());
   }
 
   /**
    * Starts the counter, if the counter is already counting it will reset and start counting from
    * the beginning
    */
-  public Counter startCounting() {
-    if (timer.isRunning()) {
-      timer.cancel();
-    }
+  public void startCounting() {
+    if (timer.isRunning()) timer.cancel();
     this.currentValue = countFrom;
     countHandler.onCount(countFrom);
     timer.scheduleRepeating(interval);
-    return this;
-  }
-
-  /**
-   * Stops the counter if it is running
-   *
-   * @return same counter instance.
-   */
-  public Counter stopCounting() {
-    if (this.timer.isRunning()) {
-      this.timer.cancel();
-    }
-    return this;
   }
 
   /** Use to add an implementation of a handler to be called after each count */
